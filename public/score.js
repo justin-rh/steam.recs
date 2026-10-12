@@ -6,6 +6,15 @@ export const TRIAGE_STEP = 0.05;
 export const QUALITY_STEP = 0.1;
 export const QUALITY_PIVOT = 0.7;
 export const DEFAULT_LIMIT = 30;
+export const OBSCURITY_STEP = 0.25;
+// log10 of a review count that counts as "not obscure at all" (1,000,000).
+const OBSCURITY_LOG_CEILING = 6;
+
+// 0..1, where 1 is most obscure. 10 reviews ≈ 0.83, 1,000 ≈ 0.5, 1M → 0.
+export function obscurityOf(reviewCount) {
+  if (reviewCount == null) return null;
+  return Math.min(1, Math.max(0, 1 - Math.log10(1 + reviewCount) / OBSCURITY_LOG_CEILING));
+}
 
 export const DEFAULT_SETTINGS = Object.freeze({
   sliders: {},
@@ -17,9 +26,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
   },
   hideWishlisted: false,
   hideTriaged: true,
+  obscurity: 0,
 });
 
-export const SETTING_KEYS = ['sliders', 'blockedTags', 'blockedCompanies', 'filters', 'hideWishlisted', 'hideTriaged'];
+export const SETTING_KEYS = ['sliders', 'blockedTags', 'blockedCompanies', 'filters', 'hideWishlisted', 'hideTriaged', 'obscurity'];
 
 export function mergeSettings(partial = {}) {
   return {
@@ -99,6 +109,14 @@ export function scoreApp(app, profile, settings, adj) {
   const lines = [...bySeed.values()].sort((a, b) => b.value - a.value).concat(sliderLines);
   if (upSum > 0) lines.push({ label: 'Similar to games you marked Interested', kind: 'triage', value: TRIAGE_STEP * upSum });
   if (downSum > 0) lines.push({ label: 'Similar to games you marked Not for me', kind: 'triage', value: -TRIAGE_STEP * downSum });
+  const obscurity = obscurityOf(app.reviewCount);
+  if (settings.obscurity && obscurity != null) {
+    lines.push({
+      label: settings.obscurity > 0 ? 'Prefers obscure' : 'Prefers popular',
+      kind: 'obscurity',
+      value: settings.obscurity * OBSCURITY_STEP * (2 * obscurity - 1),
+    });
+  }
   const minCount = settings.filters.minReviewCount ?? 0;
   if (app.reviewPct != null && (app.reviewCount ?? 0) >= minCount) {
     lines.push({ label: 'Review score', kind: 'quality', value: QUALITY_STEP * (app.reviewPct - QUALITY_PIVOT) });

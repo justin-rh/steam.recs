@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildProfile } from '../public/profile.js';
 import {
-  DEFAULT_SETTINGS, mergeSettings, excludeReason, triageAdjustments, scoreApp, scaleLines, scoreCandidates,
+  DEFAULT_SETTINGS, mergeSettings, excludeReason, triageAdjustments, scoreApp, scaleLines, scoreCandidates, obscurityOf,
 } from '../public/score.js';
 
 const app = (appid, tags, extra = {}) => ({
@@ -20,6 +20,7 @@ test('mergeSettings deep-merges filters and keeps defaults', () => {
   assert.equal(s.filters.deckOnly, true);
   assert.equal(s.filters.mode, 'any');
   assert.equal(s.hideTriaged, true);
+  assert.equal(s.obscurity, 0);
   assert.notEqual(s.sliders, DEFAULT_SETTINGS.sliders);
 });
 
@@ -156,6 +157,45 @@ test('scoreCandidates: hidden games are excluded even when hideTriaged is off', 
 
 test('triageAdjustments: hiding a game does not affect other scores', () => {
   assert.deepEqual(triageAdjustments([{ appid: 1, bucket: 'hidden', tags: { Roguelike: 1 } }]), { up: {}, down: {} });
+});
+
+test('obscurityOf: 10 reviews ≈ 0.83, 1,000 ≈ 0.5, 1M → 0, clamps huge counts, null when unknown', () => {
+  assert.ok(Math.abs(obscurityOf(10) - (1 - Math.log10(11) / 6)) < 1e-9);
+  assert.ok(Math.abs(obscurityOf(1000) - 0.5) < 0.001);
+  assert.ok(Math.abs(obscurityOf(1_000_000)) < 0.001);
+  assert.equal(obscurityOf(50_000_000), 0);
+  assert.equal(obscurityOf(null), null);
+});
+
+test('scoreApp: obscurity slider favors niche games at +2 and popular games at -2', () => {
+  const niche = app(1, { Zzz: 1 }, { reviewPct: null, reviewCount: 10 });
+  const hit = app(2, { Zzz: 1 }, { reviewPct: null, reviewCount: 1_000_000 });
+  const obscure = mergeSettings({ obscurity: 2 });
+  const nicheLine = scoreApp(niche, profile, obscure, noAdj).lines.find(l => l.kind === 'obscurity');
+  assert.equal(nicheLine.label, 'Prefers obscure');
+  assert.ok(Math.abs(nicheLine.value - 2 * 0.25 * (2 * obscurityOf(10) - 1)) < 1e-9);
+  assert.ok(scoreApp(hit, profile, obscure, noAdj).raw < 0);
+  const popular = mergeSettings({ obscurity: -2 });
+  const hitLine = scoreApp(hit, profile, popular, noAdj).lines.find(l => l.kind === 'obscurity');
+  assert.equal(hitLine.label, 'Prefers popular');
+  assert.ok(hitLine.value > 0.49);
+});
+
+test('scoreApp: no obscurity line at 0 or without review data', () => {
+  const a = app(1, { Zzz: 1 }, { reviewPct: null, reviewCount: 10 });
+  assert.equal(scoreApp(a, profile, mergeSettings(), noAdj).lines.find(l => l.kind === 'obscurity'), undefined);
+  const unknown = app(2, { Zzz: 1 }, { reviewPct: null, reviewCount: null });
+  assert.equal(scoreApp(unknown, profile, mergeSettings({ obscurity: 2 }), noAdj).lines.find(l => l.kind === 'obscurity'), undefined);
+});
+
+test('scoreCandidates: breakdown still sums to the score with the obscurity slider on', () => {
+  const candidates = Array.from({ length: 40 }, (_, i) =>
+    app(i + 1, { Roguelike: (i % 7) + 1, Action: (i % 3) + 1 }, { reviewCount: 10 ** ((i % 6) + 1) }));
+  const r = scoreCandidates({
+    profile, candidates, settings: mergeSettings({ obscurity: 2 }),
+    ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage: [] },
+  });
+  for (const rec of r.recs) assert.equal(rec.lines.reduce((s, l) => s + l.value, 0), rec.score, `appid ${rec.appid}`);
 });
 
 test('scoreCandidates: empty profile yields finite scores with no NaN', () => {

@@ -25,7 +25,7 @@ const el = {
   tunePanel: $('#tune'),
   library: { list: $('#library-list'), hidden: $('#library-hidden') },
   recs: { list: $('#rec-list'), unscored: $('#unscored'), zones: Object.fromEntries(BUCKETS.map(b => [b, $(`#zone-${b}`)])) },
-  tune: { tags: $('#tag-list'), blocked: $('#blocked-tags'), companies: $('#blocked-companies'), form: $('#filters') },
+  tune: { tags: $('#tag-list'), blocked: $('#blocked-tags'), companies: $('#blocked-companies'), form: $('#filters'), obscurityVal: $('#obscurity-val') },
 };
 
 // ---------- state ----------
@@ -119,9 +119,9 @@ function saveSettingsSoon() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     const version = settingsVersion;
-    const { sliders, blockedTags, blockedCompanies, filters, hideWishlisted, hideTriaged } = state.settings;
+    const { sliders, blockedTags, blockedCompanies, filters, hideWishlisted, hideTriaged, obscurity } = state.settings;
     try {
-      await api.put('/api/settings', { sliders, blockedTags, blockedCompanies, filters, hideWishlisted, hideTriaged });
+      await api.put('/api/settings', { sliders, blockedTags, blockedCompanies, filters, hideWishlisted, hideTriaged, obscurity });
       savedVersion = Math.max(savedVersion, version);
     } catch (err) {
       // Give up on the unsaved edit and show the server's settings again.
@@ -388,6 +388,13 @@ function wireEvents() {
     render({ tune: true });
   });
   el.tune.form.addEventListener('change', () => actions.updateSettings(readFilters(el.tune.form)));
+  // The obscurity slider lives above Tags (outside the form's DOM, linked via form="filters"),
+  // so its events don't bubble to the form; listen on 'input' for instant re-scoring.
+  $('#obscurity').addEventListener('input', e => {
+    const v = Number(e.target.value);
+    $('#obscurity-val').textContent = v > 0 ? `+${v}` : v < 0 ? `−${-v}` : '0';
+    actions.updateSettings({ obscurity: v });
+  });
   el.tune.form.addEventListener('submit', e => e.preventDefault());
 }
 

@@ -24,4 +24,5 @@ export function renderTune(el, { settings, topTags, allTags, tagQuery }) {
   el.blocked.innerHTML = settings.blockedTags.map(t => chip(t, 'unblock-tag')).join('') || '<span class="muted">None</span>';
   el.companies.innerHTML = settings.blockedCompanies.map(c => chip(c, 'unblock-company')).join('');
   writeFilters(el.form, settings);
+  el.obscurityVal.textContent = formatSigned(settings.obscurity ?? 0);
 }

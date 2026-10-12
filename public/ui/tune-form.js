@@ -24,6 +24,7 @@ export function readFilters(form) {
     },
     hideWishlisted: Boolean(form.hideWishlisted.checked),
     hideTriaged: Boolean(form.hideTriaged.checked),
+    obscurity: Math.round(Number(form.obscurity.value)) || 0,
   };
 }
 
@@ -38,4 +39,5 @@ export function writeFilters(form, settings) {
   form.mode.value = f.mode;
   form.hideWishlisted.checked = settings.hideWishlisted;
   form.hideTriaged.checked = settings.hideTriaged;
+  form.obscurity.value = String(settings.obscurity ?? 0);
 }

@@ -7,6 +7,16 @@ const blankForm = () => ({
   maxPrice: { value: '' }, minReviewPct: { value: '' }, minReviewCount: { value: '' },
   yearMin: { value: '' }, yearMax: { value: '' }, deckOnly: { checked: false },
   mode: { value: 'any' }, hideWishlisted: { checked: false }, hideTriaged: { checked: true },
+  obscurity: { value: '0' },
+});
+
+test('obscurity slider reads as an integer and round-trips', () => {
+  const f = blankForm();
+  f.obscurity.value = '-2';
+  assert.equal(readFilters(f).obscurity, -2);
+  writeFilters(f, mergeSettings({ obscurity: 1 }));
+  assert.equal(f.obscurity.value, '1');
+  assert.equal(readFilters(f).obscurity, 1);
 });
 
 test('blank fields mean no limit', () => {

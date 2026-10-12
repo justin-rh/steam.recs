@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createStore } from '../lib/store.js';
-import { createCatalog, FRESH_MS, PER_TAG } from '../lib/catalog.js';
+import { createCatalog, FRESH_MS, PER_TAG, GEMS_PER_TAG, pickGems } from '../lib/catalog.js';
 
 const passthrough = { run: fn => fn() };
 const silent = { warn() {}, error() {} };
@@ -68,6 +68,31 @@ test('only the top PER_TAG games by positive reviews are taken per tag', async (
   assert.equal(ids.size, PER_TAG);
   assert.ok(ids.has(100 + PER_TAG + 9));
   assert.ok(!ids.has(100));
+});
+
+test('pickGems keeps 50–5,000 reviews at 85%+ positive, best ratio first, capped per tag', () => {
+  const r = (appid, positive, negative) => ({ appid, name: `G${appid}`, positive, negative });
+  const list = [
+    r(1, 40, 0),        // too few reviews
+    r(2, 90, 10),       // 90% of 100 → keep
+    r(3, 5700, 300),    // too many reviews
+    r(4, 800, 200),     // 80% → below ratio
+    r(5, 990, 10),      // 99% of 1000 → keep, ranks first
+    r(6, 85, 15),       // exactly 85% → keep
+  ];
+  assert.deepEqual(pickGems(list).map(g => g.appid), [5, 2, 6]);
+  const many = Array.from({ length: GEMS_PER_TAG + 5 }, (_, i) => r(100 + i, 100, 0));
+  assert.equal(pickGems(many).length, GEMS_PER_TAG);
+});
+
+test('refresh adds hidden gems beyond the most-reviewed games for each tag', async () => {
+  const popular = Array.from({ length: PER_TAG }, (_, i) => row(100 + i, 100_000 + i));
+  const gem = { appid: 999, name: 'Gem', positive: 300, negative: 10 };
+  const { store, catalog } = setup({ tagLists: { Roguelike: [...popular, gem] } });
+  await catalog.refresh();
+  const ids = new Set(store.getValue('candidateIds', []));
+  assert.ok(ids.has(999));
+  assert.equal(ids.size, PER_TAG + 1);
 });
 
 test('second refresh within 7 days skips fresh apps; after 7 days refetches', async () => {

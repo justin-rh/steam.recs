@@ -58,6 +58,13 @@
 
     <section class="panel" id="tune" aria-labelledby="tune-title">
       <h2 id="tune-title">Tune</h2>
+      <h3>Obscurity</h3>
+      <div class="obscurity-row">
+        <span class="muted">Popular</span>
+        <input id="obscurity" name="obscurity" form="filters" type="range" min="-2" max="2" step="1" value="0" aria-label="Prefer popular or obscure games">
+        <span class="muted">Obscure</span>
+        <span id="obscurity-val" class="tag-val">0</span>
+      </div>
       <h3>Tags</h3>
       <input id="tag-search" type="search" placeholder="Search any tag…" autocomplete="off">
       <ul id="tag-list" class="tag-list"></ul>

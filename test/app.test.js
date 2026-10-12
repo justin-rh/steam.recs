@@ -103,6 +103,10 @@ test('settings validation', async () => {
   assert.equal(res.body.settings.sliders.Roguelike, 2);
   assert.equal(res.body.settings.filters.maxPriceCents, 0);
   await request(app).put('/api/settings').send({ sliders: { Roguelike: 5 } }).expect(400);
+  const ob = await request(app).put('/api/settings').send({ obscurity: -2 }).expect(200);
+  assert.equal(ob.body.settings.obscurity, -2);
+  await request(app).put('/api/settings').send({ obscurity: 3 }).expect(400);
+  await request(app).put('/api/settings').send({ obscurity: 1.5 }).expect(400);
   await request(app).put('/api/settings').send({ filters: { mode: 'mmo' } }).expect(400);
   await request(app).put('/api/settings').send({ blockedTags: 'Horror' }).expect(400);
 });
