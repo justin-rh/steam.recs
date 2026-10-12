@@ -92,7 +92,7 @@
       <h2>Add a game</h2>
       <input id="add-search" type="search" placeholder="Search the Steam store…" autocomplete="off">
       <ul id="add-results" class="add-results"></ul>
-      <menu><button value="cancel">Close</button></menu>
+      <menu><button type="button" data-close>Close</button></menu>
     </form>
   </dialog>
 
@@ -101,7 +101,7 @@
       <h2>Add <span id="played-name"></span> to your library</h2>
       <label>At rank <input id="played-rank" type="number" min="1"></label>
       <menu>
-        <button value="cancel">Cancel</button>
+        <button type="button" data-close>Cancel</button>
         <button value="ok" class="primary">Add</button>
       </menu>
     </form>
