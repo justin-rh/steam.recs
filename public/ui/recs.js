@@ -1,6 +1,6 @@
 import { escapeHtml, capsuleFor, formatPrice, formatReview, formatSigned, topReason } from '../format.js';
 
-export const BUCKETS = ['interested', 'not_for_me', 'played'];
+export const BUCKETS = ['interested', 'not_for_me', 'played', 'hidden'];
 
 function card(rec, { blurb, expanded }) {
   const a = rec.app;

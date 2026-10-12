@@ -85,6 +85,9 @@ test('triage set/clear and bucket validation', () => {
   s.setTriage(5, 'not_for_me');
   assert.deepEqual(s.getTriage().map(t => [t.appid, t.bucket]), [[5, 'not_for_me']]);
   assert.throws(() => s.setTriage(5, 'maybe'), RangeError);
+  s.setTriage(6, 'hidden');
+  assert.equal(s.getTriage().find(t => t.appid === 6).bucket, 'hidden');
+  s.clearTriage(6);
   s.clearTriage(5);
   assert.deepEqual(s.getTriage(), []);
 });

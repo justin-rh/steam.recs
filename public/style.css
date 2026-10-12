@@ -61,7 +61,7 @@ input[type="text"], input[type="search"], input[type="number"], select {
 .blurb { font-style: italic; margin: 8px 0; }
 .rec-body a { color: var(--accent); }
 
-.zones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; position: sticky; bottom: 0; background: var(--panel); padding-top: 6px; }
+.zones { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; position: sticky; bottom: 0; background: var(--panel); padding-top: 6px; }
 .zone { position: relative; border: 2px dashed var(--line); border-radius: 6px; min-height: 52px; }
 .zone-head { width: 100%; background: none; border: none; padding: 14px 8px; font-weight: 600; }
 .zone .count { display: inline-block; min-width: 20px; border-radius: 10px; background: var(--panel-2); margin-left: 4px; }

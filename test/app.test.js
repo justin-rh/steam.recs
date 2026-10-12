@@ -91,6 +91,8 @@ test('triage put/delete and bucket validation', async () => {
   let res = await request(app).put('/api/triage/5').send({ bucket: 'interested' }).expect(200);
   assert.deepEqual(res.body.triage.map(t => t.bucket), ['interested']);
   await request(app).put('/api/triage/5').send({ bucket: 'maybe' }).expect(400);
+  await request(app).put('/api/triage/6').send({ bucket: 'hidden' }).expect(200);
+  await request(app).delete('/api/triage/6').expect(200);
   res = await request(app).delete('/api/triage/5').expect(200);
   assert.deepEqual(res.body.triage, []);
 });

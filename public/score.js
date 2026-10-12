@@ -44,6 +44,7 @@ function companies(app) {
 
 export function excludeReason(app, settings, ctx) {
   if (ctx.excludeIds.has(app.appid)) return 'owned';
+  if (ctx.hiddenIds?.has(app.appid)) return 'hidden';
   if (settings.hideTriaged && ctx.triagedIds.has(app.appid)) return 'triaged';
   if (settings.hideWishlisted && ctx.wishlistIds.has(app.appid)) return 'wishlisted';
   const blockedTags = new Set(settings.blockedTags.map(lc));
@@ -120,7 +121,13 @@ export function scaleLines(lines, factor, target) {
 export function scoreCandidates({ profile, candidates, settings, ctx, limit = DEFAULT_LIMIT, pinnedIds = new Set() }) {
   const s = mergeSettings(settings);
   const adj = triageAdjustments(ctx.triage);
-  const fullCtx = { excludeIds: ctx.excludeIds, wishlistIds: ctx.wishlistIds, triagedIds: new Set(ctx.triage.map(t => t.appid)) };
+  const fullCtx = {
+    excludeIds: ctx.excludeIds,
+    wishlistIds: ctx.wishlistIds,
+    triagedIds: new Set(ctx.triage.map(t => t.appid)),
+    // Hidden is "never show me this", independent of the hideTriaged toggle.
+    hiddenIds: new Set(ctx.triage.filter(t => t.bucket === 'hidden').map(t => t.appid)),
+  };
   let unscored = 0;
   const scored = [];
 

@@ -146,6 +146,18 @@ test('scoreCandidates: pinned ids are kept even when outside the limit', () => {
   assert.equal(r.recs[1].pinned, true);
 });
 
+test('scoreCandidates: hidden games are excluded even when hideTriaged is off', () => {
+  const r = scoreCandidates({
+    profile, candidates: [app(1, { Roguelike: 1 }), app(2, { Roguelike: 1 })], settings: mergeSettings({ hideTriaged: false }),
+    ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage: [{ appid: 1, bucket: 'hidden', tags: { Roguelike: 1 } }] },
+  });
+  assert.deepEqual(r.recs.map(x => x.appid), [2]);
+});
+
+test('triageAdjustments: hiding a game does not affect other scores', () => {
+  assert.deepEqual(triageAdjustments([{ appid: 1, bucket: 'hidden', tags: { Roguelike: 1 } }]), { up: {}, down: {} });
+});
+
 test('scoreCandidates: empty profile yields finite scores with no NaN', () => {
   const empty = buildProfile([], new Map());
   const r = scoreCandidates({
