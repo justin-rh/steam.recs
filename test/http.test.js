@@ -26,6 +26,17 @@ test('fetchJson surfaces an HTML error page as a retryable SyntaxError', async (
   await assert.rejects(fetchJson(fakeFetch(200, null, { json: false }), 'https://x.test/'), err => isRetryable(err));
 });
 
+test('fetchJson aborts a hung request after timeoutMs with a retryable error', async () => {
+  const hanging = async (url, opts) => new Promise((_, reject) => {
+    opts.signal.addEventListener('abort', () => reject(opts.signal.reason));
+  });
+  await assert.rejects(fetchJson(hanging, 'https://x.test/', { timeoutMs: 20 }), err => {
+    assert.equal(err.name, 'TimeoutError');
+    assert.equal(isRetryable(err), true);
+    return true;
+  });
+});
+
 test('isRetryable: 429 and 5xx yes, 404 no, network errors yes', () => {
   assert.equal(isRetryable(new HttpError(429, 'u')), true);
   assert.equal(isRetryable(new HttpError(503, 'u')), true);
