@@ -5,7 +5,7 @@ export const SLIDER_STEP = 0.15;
 export const TRIAGE_STEP = 0.05;
 export const QUALITY_STEP = 0.1;
 export const QUALITY_PIVOT = 0.7;
-export const DEFAULT_LIMIT = 30;
+export const DEFAULT_LIMIT = 60;
 export const OBSCURITY_STEP = 0.25;
 // log10 of a review count that counts as "not obscure at all" (1,000,000).
 const OBSCURITY_LOG_CEILING = 6;
@@ -168,5 +168,5 @@ export function scoreCandidates({ profile, candidates, settings, ctx, limit = DE
     const score = Math.round(r.raw * factor);
     return { appid: r.app.appid, app: r.app, raw: r.raw, score, lines: scaleLines(r.lines, factor, score), pinned: pinnedIds.has(r.app.appid) };
   });
-  return { recs, unscored, eligible: scored.length };
+  return { recs, unscored, eligible: scored.length, shown: top.length };
 }

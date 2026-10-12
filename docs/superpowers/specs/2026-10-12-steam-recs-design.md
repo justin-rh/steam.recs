@@ -57,9 +57,9 @@ test/
 1. **Import:** `POST /api/import` → Steam `GetOwnedGames` → upsert into `library`. Existing rank is preserved; new games are appended to the bottom.
 2. **Catalog build:** `POST /api/catalog/refresh` runs these steps:
    1. Fetch SteamSpy tags for seeded library games.
-   2. Build the profile and take its top 8 tags.
-   3. Build the candidate pool: SteamSpy top-100-in-2-weeks plus, for each of those 8 tags, the 40 games with the most positive reviews from SteamSpy's tag list, minus the library.
-   4. Fetch tags (SteamSpy) and details (store `appdetails` and the Deck compatibility report) for each candidate.
+   2. Build the profile and take its top 12 tags.
+   3. Build the candidate pool: SteamSpy top-100-in-2-weeks plus, for each of those 12 tags, the 50 games with the most positive reviews and up to 60 hidden gems (80%+ positive, 20–20,000 reviews, ranked by Wilson lower bound) from SteamSpy's tag list, minus the library. Gems are ordered first.
+   4. Fetch tags (SteamSpy) and details (store `appdetails` and the Deck compatibility report) for each candidate, with the SteamSpy and store lanes running side by side.
    5. Fetch tags for the remaining non-seeded library games.
 
    Calls go through per-host throttled queues: SteamSpy every 1.1 s, store every 1.5 s. Each app records `tags_at` / `details_at`, and an entry fresher than 7 days is skipped, so a rerun after an interruption picks up where it stopped. The candidate list is saved before step 4, so partial results are usable while the build runs. Progress is exposed via `GET /api/catalog/status`.

@@ -131,7 +131,7 @@ test('scoreCandidates: breakdown lines sum exactly to the displayed score for ev
   const settings = mergeSettings({ sliders: { Puzzle: 1, Horror: -2 } });
   const triage = [{ appid: 999, bucket: 'not_for_me', tags: { Action: 1 } }, { appid: 998, bucket: 'interested', tags: { Puzzle: 1 } }];
   const r = scoreCandidates({ profile, candidates, settings, ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage } });
-  assert.equal(r.recs.length, 30);
+  assert.equal(r.recs.length, 50);
   for (const rec of r.recs) {
     assert.equal(rec.lines.reduce((s, l) => s + l.value, 0), rec.score, `appid ${rec.appid}`);
   }
@@ -196,6 +196,19 @@ test('scoreCandidates: breakdown still sums to the score with the obscurity slid
     ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage: [] },
   });
   for (const rec of r.recs) assert.equal(rec.lines.reduce((s, l) => s + l.value, 0), rec.score, `appid ${rec.appid}`);
+});
+
+test('scoreCandidates: shows 60 by default, honors a larger limit, and reports the eligible total', () => {
+  const candidates = Array.from({ length: 100 }, (_, i) => app(i + 1, { Roguelike: (i % 9) + 1, Action: 1 }));
+  const args = { profile, candidates, settings: mergeSettings(), ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage: [] } };
+  const first = scoreCandidates(args);
+  assert.equal(first.recs.length, 60);
+  assert.equal(first.shown, 60);
+  assert.equal(first.eligible, 100);
+  const more = scoreCandidates({ ...args, limit: 90 });
+  assert.equal(more.recs.length, 90);
+  const byId = Object.fromEntries(more.recs.map(r => [r.appid, r.score]));
+  for (const r of first.recs) assert.equal(byId[r.appid], r.score, 'scores do not shift when more are shown');
 });
 
 test('scoreCandidates: empty profile yields finite scores with no NaN', () => {

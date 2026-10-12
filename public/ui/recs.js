@@ -29,13 +29,17 @@ function card(rec, { blurb, expanded }) {
   </li>`;
 }
 
-export function renderRecs(el, { recs, unscored, blurbs, expanded, triage, catalogEmpty }) {
+export function renderRecs(el, { recs, unscored, eligible, shown, blurbs, expanded, triage, catalogEmpty }) {
   el.list.innerHTML = recs.length
     ? recs.map(r => card(r, { blurb: blurbs[r.appid], expanded: expanded.has(r.appid) })).join('')
     : `<li class="empty">${catalogEmpty
-      ? 'No catalog yet. Click Regenerate to build it (the first build takes 10–20 minutes; results appear as they arrive).'
+      ? 'No catalog yet. Click Regenerate to build it (the first build takes about 45 minutes; results appear as they arrive).'
       : 'No games match your current filters.'}</li>`;
-  el.unscored.textContent = unscored ? `${unscored} games unscored (no tag data)` : '';
+  const counts = [];
+  if (recs.length) counts.push(`Showing ${shown} of ${eligible}`);
+  if (unscored) counts.push(`${unscored} unscored (no tag data)`);
+  el.unscored.textContent = counts.join(' · ');
+  el.more.hidden = shown >= eligible;
 
   for (const bucket of BUCKETS) {
     const items = triage.filter(t => t.bucket === bucket);

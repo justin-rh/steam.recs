@@ -18,7 +18,7 @@ A local web app that recommends Steam games based on the games you already play.
 npm start
 ```
 
-Open http://localhost:3000, click **Import from Steam**, then **Regenerate**. The first catalog build fetches tags and details for about 400 games while staying under Steam/SteamSpy rate limits, so it takes 10–20 minutes. Results appear while it runs. Cached data is reused for 7 days.
+Open http://localhost:3000, click **Import from Steam**, then **Regenerate**. The first catalog build fetches tags and details for about 1,000 games while staying under Steam/SteamSpy rate limits, so it takes about 45 minutes. Hidden gems are fetched first, and results appear while it runs. Cached data is reused for 7 days, so later builds are much faster.
 
 ## How scoring works
 
@@ -27,6 +27,9 @@ Open http://localhost:3000, click **Import from Steam**, then **Regenerate**. Th
 - **Tag sliders:** −2 to +2 suppress or boost a tag. ✕ blocks a tag entirely.
 - **Triage:** "Interested" nudges similar games up; "Not for me" nudges them down. "Played" adds the game to your library at the rank you choose.
 - **Review score:** a small nudge up or down relative to 70% positive.
+- **Obscurity slider:** −2 favors popular games, +2 favors games with few reviews.
+- **Candidate pool:** for each of your top 12 tags, the 50 most-reviewed games plus up to 60 hidden gems (80%+ positive, 20–20,000 reviews, ranked by a confidence-adjusted rating), plus what's trending.
+- The list shows 60 games; **Show more** adds 30 at a time.
 - The top card is scaled to 100%, and the breakdown lines always add up to the score shown.
 
 ## Tests

@@ -12,11 +12,14 @@ const $ = sel => document.querySelector(sel);
 const POLL_MS = 2000;
 const RELOAD_EVERY_POLLS = 5;
 const SAVE_DEBOUNCE_MS = 300;
+const INITIAL_SHOWN = 60;
+const SHOW_MORE_STEP = 30;
+const CLAUDE_BLURB_LIMIT = 30;
 
 const state = {
   config: {}, library: [], apps: new Map(), candidateIds: [], triage: [], wishlist: [],
   settings: mergeSettings(), claude: null, catalog: null,
-  expanded: new Set(), tagQuery: '', notice: null, busy: null,
+  expanded: new Set(), tagQuery: '', notice: null, busy: null, shown: INITIAL_SHOWN,
 };
 
 const el = {
@@ -24,7 +27,7 @@ const el = {
   status: $('#catalog-status'),
   tunePanel: $('#tune'),
   library: { list: $('#library-list'), hidden: $('#library-hidden') },
-  recs: { list: $('#rec-list'), unscored: $('#unscored'), zones: Object.fromEntries(BUCKETS.map(b => [b, $(`#zone-${b}`)])) },
+  recs: { list: $('#rec-list'), unscored: $('#unscored'), more: $('#show-more'), zones: Object.fromEntries(BUCKETS.map(b => [b, $(`#zone-${b}`)])) },
   tune: { tags: $('#tag-list'), blocked: $('#blocked-tags'), companies: $('#blocked-companies'), form: $('#filters'), obscurityVal: $('#obscurity-val') },
 };
 
@@ -51,6 +54,7 @@ function compute() {
     profile,
     candidates,
     settings: state.settings,
+    limit: state.shown,
     pinnedIds: wildcardIds,
     ctx: {
       excludeIds: new Set(state.library.map(g => g.appid)),
@@ -70,6 +74,8 @@ function render({ tune = 'auto' } = {}) {
   renderRecs(el.recs, {
     recs: r.recs,
     unscored: r.unscored,
+    eligible: r.eligible,
+    shown: r.shown,
     blurbs: state.claude?.blurbs || {},
     expanded: state.expanded,
     triage: state.triage.map(t => ({ ...t, name: state.apps.get(t.appid)?.name ?? `App ${t.appid}` })),
@@ -224,7 +230,7 @@ async function askClaude() {
   state.busy = 'Asking Claude for blurbs and wildcards…';
   renderStatus();
   try {
-    const res = await api.post('/api/claude/annotate', { appids: recs.filter(r => !r.pinned).map(r => r.appid) });
+    const res = await api.post('/api/claude/annotate', { appids: recs.filter(r => !r.pinned).slice(0, CLAUDE_BLURB_LIMIT).map(r => r.appid) });
     if (res.error) state.notice = res.error;
   } catch (err) {
     state.notice = `Claude unavailable: ${err.message}`;
@@ -340,6 +346,10 @@ function wireEvents() {
     if (e.target.dataset.action === 'unhide') actions.setHidden(Number(e.target.dataset.appid), false);
   });
 
+  el.recs.more.addEventListener('click', () => {
+    state.shown += SHOW_MORE_STEP;
+    render();
+  });
   el.recs.list.addEventListener('click', e => {
     if (e.target.closest('a')) return;
     if (e.target.closest('[data-action="expand"]')) actions.toggleExpand(rowId(e.target));

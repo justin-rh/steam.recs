@@ -45,6 +45,7 @@ input[type="text"], input[type="search"], input[type="number"], select {
 .hidden-row { padding: 2px 0; }
 
 .rec-list { list-style: none; margin: 0; padding: 0; flex: 1; }
+.show-more { width: 100%; margin-top: 4px; }
 .rec { border: 1px solid var(--line); border-radius: 6px; margin-bottom: 6px; background: var(--panel-2); cursor: grab; }
 .rec-head { display: grid; grid-template-columns: 120px 1fr auto; gap: 10px; align-items: center; padding: 6px; }
 .rec .capsule { width: 120px; height: 45px; object-fit: cover; border-radius: 3px; }
