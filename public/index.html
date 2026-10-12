@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Steam Recs</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Steam Recs</h1>
+    <button id="btn-import" type="button">Import from Steam</button>
+    <button id="btn-regenerate" type="button" class="primary">Regenerate</button>
+    <span id="catalog-status" class="status"></span>
+  </header>
+  <div id="banner" class="banner" hidden></div>
+
+  <main class="cockpit">
+    <section class="panel" id="library-panel" aria-labelledby="library-title">
+      <div class="panel-head">
+        <h2 id="library-title">My Library</h2>
+        <button id="btn-add" type="button" class="small">+ add game</button>
+      </div>
+      <p class="hint">Drag to rank. Higher = more weight. ☑ = seed.</p>
+      <ol id="library-list" class="library-list"></ol>
+      <div id="library-hidden"></div>
+    </section>
+
+    <section class="panel" id="recs-panel" aria-labelledby="recs-title">
+      <div class="panel-head">
+        <h2 id="recs-title">Recommendations</h2>
+        <span id="unscored" class="muted"></span>
+      </div>
+      <ul id="rec-list" class="rec-list"></ul>
+      <div class="zones">
+        <div class="zone" id="zone-interested" data-bucket="interested">
+          <button type="button" class="zone-head" data-action="toggle-zone">Interested <span class="count">0</span></button>
+          <ul class="zone-drop"></ul>
+          <ul class="zone-items"></ul>
+        </div>
+        <div class="zone" id="zone-not_for_me" data-bucket="not_for_me">
+          <button type="button" class="zone-head" data-action="toggle-zone">Not for me <span class="count">0</span></button>
+          <ul class="zone-drop"></ul>
+          <ul class="zone-items"></ul>
+        </div>
+        <div class="zone" id="zone-played" data-bucket="played">
+          <button type="button" class="zone-head" data-action="toggle-zone">Played <span class="count">0</span></button>
+          <ul class="zone-drop"></ul>
+          <ul class="zone-items"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="tune" aria-labelledby="tune-title">
+      <h2 id="tune-title">Tune</h2>
+      <h3>Tags</h3>
+      <input id="tag-search" type="search" placeholder="Search any tag…" autocomplete="off">
+      <ul id="tag-list" class="tag-list"></ul>
+      <div class="chips-label">Blocked tags</div>
+      <div id="blocked-tags" class="chips"></div>
+
+      <form id="filters" class="filters" autocomplete="off">
+        <h3>Filters</h3>
+        <label>Max price ($) <input name="maxPrice" type="number" min="0" step="0.01" placeholder="any"></label>
+        <label>Min review % <input name="minReviewPct" type="number" min="0" max="100" placeholder="any"></label>
+        <label>Min reviews <input name="minReviewCount" type="number" min="0" placeholder="any"></label>
+        <label>Released from <input name="yearMin" type="number" min="1990" max="2100" placeholder="any"></label>
+        <label>Released to <input name="yearMax" type="number" min="1990" max="2100" placeholder="any"></label>
+        <label class="check"><input name="deckOnly" type="checkbox"> Steam Deck verified only</label>
+        <label>Play mode
+          <select name="mode">
+            <option value="any">Any</option>
+            <option value="single">Single-player</option>
+            <option value="multi">Multiplayer</option>
+            <option value="coop">Co-op</option>
+          </select>
+        </label>
+        <h3>Exclusions</h3>
+        <label class="check"><input type="checkbox" checked disabled> Hide games I own</label>
+        <label class="check"><input name="hideWishlisted" type="checkbox"> Hide wishlisted</label>
+        <label class="check"><input name="hideTriaged" type="checkbox"> Hide triaged</label>
+      </form>
+      <label class="company-label">Blocked developers/publishers
+        <input id="company-input" type="text" placeholder="Type a name, press Enter">
+      </label>
+      <div id="blocked-companies" class="chips"></div>
+    </section>
+  </main>
+
+  <dialog id="add-dialog">
+    <form method="dialog" class="dialog-body">
+      <h2>Add a game</h2>
+      <input id="add-search" type="search" placeholder="Search the Steam store…" autocomplete="off">
+      <ul id="add-results" class="add-results"></ul>
+      <menu><button value="cancel">Close</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="played-dialog">
+    <form method="dialog" class="dialog-body">
+      <h2>Add <span id="played-name"></span> to your library</h2>
+      <label>At rank <input id="played-rank" type="number" min="1"></label>
+      <menu>
+        <button value="cancel">Cancel</button>
+        <button value="ok" class="primary">Add</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="/vendor/Sortable.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
