@@ -74,15 +74,17 @@ test/
 ## Scoring model
 
 **Profile (`profile.js`)**
-- Rank weight for library game at position `i` (0-based) of `n`: `w_rank = 1.0 - 0.8 * i / max(n-1, 1)` → #1 = 1.0, last = 0.2
-- Playtime bonus: `w_play = 0.25 * log10(1 + hours) / log10(1 + maxHours)` (0 to 0.25)
-- Game weight `w = w_rank + w_play`; only games with `seed = true` contribute
-- Tag affinity: for each seed game, each of its tags gets `w * tagVoteShare`, where `tagVoteShare` = that tag's SteamSpy votes / the game's total tag votes. Affinities are summed across seeds and normalized so the max is 1.0.
-- Each tag also remembers which seed games contributed most (used for the breakdown text).
+- Only games with `seed = true` contribute. `j` is a seed's 0-based position among seeds (not the whole library); the displayed rank is still its library position.
+- Rank weight: `w_rank = 0.5 ^ (j / 8)` → the 1st seed = 1.0, the 9th = 0.5, the 17th = 0.25.
+- Playtime multiplier: `m_play = 1 + 0.25 * log10(1 + hours) / log10(1 + maxSeedHours)` (1.0 to 1.25).
+- Game weight `w = w_rank * m_play`, so playtime can't lift a low-ranked seed past a high-ranked one.
+- Tag affinity: for each seed game, each of its tags gets `w * tagVoteShare`, where `tagVoteShare` = that tag's SteamSpy votes / the game's total tag votes. Affinities are summed across seeds, multiplied by the tag's IDF, and normalized so the max is 1.0.
+- IDF: `ln((N + 1) / (df + 1)) + 1` over the known apps (library + catalog), so tags on nearly every game ("Singleplayer", "Indie") count for little.
+- Each tag remembers every contributing seed and its fraction of that tag (used for the breakdown).
 
 **Score (`score.js`)**, per candidate:
 1. **Hard excludes** (removed, not penalized): owned, in library, triaged (if "hide triaged" is on), wishlisted (if on), any blocked tag, blocked developer/publisher, fails any filter.
-2. **Seed overlap:** for each candidate tag `t` with vote share `s`: `affinity[t] * s`. Contributions are grouped by the seed game that dominates each tag → breakdown lines such as "Hades (#1) overlap +41".
+2. **Seed overlap:** for each candidate tag `t` with vote share `s`: `affinity[t] * s`, credited to each contributing seed in proportion to its fraction of that tag. The card shows the top 3 seeds ("Hades (#1) overlap +41") and folds the rest into an "Other seeds" line.
 3. **Tag sliders:** for each candidate tag with slider value `v ∈ {-2..+2}`: `v * 0.15 * s` → "Roguelike boost +18".
 4. **Triage feedback:** "Interested" games add `+0.05` per tag (by vote share) and "Not for me" games add `-0.05` per tag, aggregated into a per-tag adjustment → one line each.
 5. **Quality nudge:** `+0.1 * (reviewPct - 0.7)` when review count ≥ the filter minimum → "Review score +3".

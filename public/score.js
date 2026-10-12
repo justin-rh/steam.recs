@@ -6,6 +6,7 @@ export const TRIAGE_STEP = 0.05;
 export const QUALITY_STEP = 0.1;
 export const QUALITY_PIVOT = 0.7;
 export const DEFAULT_LIMIT = 60;
+export const SEED_LINES_SHOWN = 3;
 export const OBSCURITY_STEP = 0.25;
 // log10 of a review count that counts as "not obscure at all" (1,000,000).
 const OBSCURITY_LOG_CEILING = 6;
@@ -93,10 +94,12 @@ export function scoreApp(app, profile, settings, adj) {
   for (const [tag, share] of Object.entries(shares)) {
     const affinity = profile.affinity[tag] || 0;
     if (affinity > 0) {
-      const src = profile.sources[tag][0];
-      const line = bySeed.get(src.appid) || { label: `${src.name} (#${src.rank}) overlap`, kind: 'seed', value: 0 };
-      line.value += affinity * share;
-      bySeed.set(src.appid, line);
+      // Credit the tag's points to every seed that contributed to it, in proportion.
+      for (const src of profile.sources[tag]) {
+        const line = bySeed.get(src.appid) || { label: `${src.name} (#${src.rank}) overlap`, kind: 'seed', value: 0 };
+        line.value += affinity * share * src.frac;
+        bySeed.set(src.appid, line);
+      }
     }
     const v = settings.sliders[tag] || 0;
     if (v !== 0) {
@@ -106,7 +109,10 @@ export function scoreApp(app, profile, settings, adj) {
     downSum += (adj.down[tag] || 0) * share;
   }
 
-  const lines = [...bySeed.values()].sort((a, b) => b.value - a.value).concat(sliderLines);
+  const seedLines = [...bySeed.values()].sort((a, b) => b.value - a.value);
+  const rest = seedLines.splice(SEED_LINES_SHOWN);
+  if (rest.length) seedLines.push({ label: 'Other seeds', kind: 'seed', value: rest.reduce((sum, l) => sum + l.value, 0) });
+  const lines = seedLines.concat(sliderLines);
   if (upSum > 0) lines.push({ label: 'Similar to games you marked Interested', kind: 'triage', value: TRIAGE_STEP * upSum });
   if (downSum > 0) lines.push({ label: 'Similar to games you marked Not for me', kind: 'triage', value: -TRIAGE_STEP * downSum });
   const obscurity = obscurityOf(app.reviewCount);

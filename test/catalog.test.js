@@ -102,6 +102,15 @@ test('refresh searches up to TOP_TAGS tags', async () => {
   assert.equal(calls.lists.length, 1 + TOP_TAGS);
 });
 
+test('tag searches favor distinctive tags over ones common across the cached catalog', async () => {
+  const { store, catalog, calls } = setup({ seedTags: { Common: 10, Rare: 9 } });
+  const cached = Array.from({ length: 20 }, (_, i) => 700 + i);
+  cached.forEach(id => store.upsertApp({ appid: id, name: `C${id}`, tags: { Common: 5 } }));
+  store.setValue('candidateIds', cached);
+  await catalog.refresh();
+  assert.deepEqual(calls.lists.slice(1), ['Rare', 'Common']);
+});
+
 test('hidden gems are fetched before popular picks', async () => {
   const popular = Array.from({ length: 5 }, (_, i) => row(100 + i, 100_000 + i));
   const gem = { appid: 999, name: 'Gem', positive: 300, negative: 10 };

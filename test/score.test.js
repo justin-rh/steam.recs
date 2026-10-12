@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildProfile } from '../public/profile.js';
+import { buildProfile, tagIdf } from '../public/profile.js';
 import {
   DEFAULT_SETTINGS, mergeSettings, excludeReason, triageAdjustments, scoreApp, scaleLines, scoreCandidates, obscurityOf,
 } from '../public/score.js';
@@ -209,6 +209,48 @@ test('scoreCandidates: shows 60 by default, honors a larger limit, and reports t
   assert.equal(more.recs.length, 90);
   const byId = Object.fromEntries(more.recs.map(r => [r.appid, r.score]));
   for (const r of first.recs) assert.equal(byId[r.appid], r.score, 'scores do not shift when more are shown');
+});
+
+const seedLib = n => Array.from({ length: n }, (_, i) => ({ appid: 1000 + i, name: `Seed${i + 1}`, hours: 0, rank: i, seed: true, hidden: false }));
+
+test('scoreApp: a shared tag is credited to each contributing seed in proportion', () => {
+  const lib2 = seedLib(2);
+  const p = buildProfile(lib2, new Map(lib2.map(g => [g.appid, { tags: { T: 1 } }])));
+  const { lines } = scoreApp(app(1, { T: 1 }, { reviewPct: null }), p, mergeSettings(), noAdj);
+  assert.deepEqual(lines.map(l => l.label), ['Seed1 (#1) overlap', 'Seed2 (#2) overlap']);
+  const w1 = 0.5 ** (1 / 8);
+  assert.ok(Math.abs(lines[0].value - 1 / (1 + w1)) < 1e-9);
+  assert.ok(Math.abs(lines[1].value - w1 / (1 + w1)) < 1e-9);
+});
+
+test('scoreApp: shows the top 3 seeds and folds the rest into "Other seeds"', () => {
+  const lib5 = seedLib(5);
+  const p = buildProfile(lib5, new Map(lib5.map(g => [g.appid, { tags: { T: 1 } }])));
+  const { lines, raw } = scoreApp(app(1, { T: 1 }, { reviewPct: null }), p, mergeSettings(), noAdj);
+  assert.deepEqual(lines.map(l => l.label), ['Seed1 (#1) overlap', 'Seed2 (#2) overlap', 'Seed3 (#3) overlap', 'Other seeds']);
+  assert.ok(Math.abs(raw - 1) < 1e-9);
+});
+
+test('scoreCandidates: a game like your #1 outranks a game like your #20', () => {
+  const lib20 = seedLib(20);
+  const p = buildProfile(lib20, new Map(lib20.map((g, i) => [g.appid, { tags: { [`T${i}`]: 1 } }])));
+  const r = scoreCandidates({
+    profile: p, candidates: [app(1, { T19: 1 }, { reviewPct: null }), app(2, { T0: 1 }, { reviewPct: null })], settings: mergeSettings(),
+    ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage: [] },
+  });
+  assert.deepEqual(r.recs.map(x => x.appid), [2, 1]);
+  assert.ok(r.recs[1].score < 25);
+});
+
+test('scoreCandidates: with IDF, a distinctive-tag match beats a generic-tag match', () => {
+  const lib1 = seedLib(1);
+  const catalog = [...Array.from({ length: 50 }, (_, i) => app(500 + i, { Singleplayer: 1 })), app(600, { Mystery: 1, Singleplayer: 1 })];
+  const p = buildProfile(lib1, new Map([[1000, { tags: { Singleplayer: 1, Mystery: 1 } }]]), { idf: tagIdf(catalog) });
+  const r = scoreCandidates({
+    profile: p, candidates: [app(1, { Singleplayer: 1 }, { reviewPct: null }), app(2, { Mystery: 1 }, { reviewPct: null })], settings: mergeSettings(),
+    ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage: [] },
+  });
+  assert.deepEqual(r.recs.map(x => x.appid), [2, 1]);
 });
 
 test('scoreCandidates: empty profile yields finite scores with no NaN', () => {

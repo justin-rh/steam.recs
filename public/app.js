@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { buildProfile } from './profile.js';
+import { buildProfile, tagIdf } from './profile.js';
 import { scoreCandidates, mergeSettings } from './score.js';
 import { renderLibrary } from './ui/library.js';
 import { renderRecs, BUCKETS } from './ui/recs.js';
@@ -46,7 +46,7 @@ async function reload() {
 }
 
 function compute() {
-  const profile = buildProfile(state.library, state.apps);
+  const profile = buildProfile(state.library, state.apps, { idf: tagIdf(state.apps.values()) });
   const wildcardIds = new Set((state.claude?.wildcards || []).map(w => w.appid));
   const ids = [...new Set([...state.candidateIds, ...wildcardIds])];
   const candidates = ids.map(id => state.apps.get(id)).filter(Boolean);
