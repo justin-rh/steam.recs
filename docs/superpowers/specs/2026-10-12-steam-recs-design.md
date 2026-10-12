@@ -27,8 +27,9 @@ A local, single-user web app that recommends Steam games based on the games Just
 Matches existing projects (`soti.api`, `simple.print`):
 - Node + Express `server.js`, vanilla JS frontend in `public/`
 - `better-sqlite3` for persistence (single file `steam-recs.db`)
-- SortableJS for drag-and-drop (vendored into `public/vendor/`)
-- `@anthropic-ai/sdk` for the optional Claude features, model `claude-sonnet-5-5`
+- SortableJS for drag-and-drop (npm `sortablejs`, served by Express at `/vendor/Sortable.min.js`)
+- `@anthropic-ai/sdk` for the optional Claude features: model `claude-opus-5-5`, effort `low`, JSON-schema structured output, server-side refusal fallback (`fallbacks: "default"`)
+- Server binds to `127.0.0.1` only
 - Node's built-in test runner (`node --test`)
 - Config in `.env`: `STEAM_API_KEY`, `STEAM_ID` (SteamID64 or vanity name), optional `ANTHROPIC_API_KEY`, `PORT` (default 3000)
 
@@ -54,10 +55,20 @@ test/
 ### Data flow
 
 1. **Import:** `POST /api/import` → Steam `GetOwnedGames` → upsert into `library`. Existing rank is preserved; new games are appended to the bottom.
-2. **Catalog build:** `POST /api/catalog/refresh` → SteamSpy top-100-in-2-weeks, top-100-forever, and per-genre lists, plus library games → fetch tags/details per app via a throttled queue (~1 req/s) → cache in `apps`. Progress is exposed via `GET /api/catalog/status`. Entries are considered fresh for 7 days. Partial progress is saved, so a build resumes after interruption.
+2. **Catalog build:** `POST /api/catalog/refresh` runs these steps:
+   1. Fetch SteamSpy tags for seeded library games.
+   2. Build the profile and take its top 8 tags.
+   3. Build the candidate pool: SteamSpy top-100-in-2-weeks plus, for each of those 8 tags, the 40 games with the most positive reviews from SteamSpy's tag list, minus the library.
+   4. Fetch tags (SteamSpy) and details (store `appdetails` and the Deck compatibility report) for each candidate.
+   5. Fetch tags for the remaining non-seeded library games.
+
+   Calls go through per-host throttled queues: SteamSpy every 1.1 s, store every 1.5 s. Each app records `tags_at` / `details_at`, and an entry fresher than 7 days is skipped, so a rerun after an interruption picks up where it stopped. The candidate list is saved before step 4, so partial results are usable while the build runs. Progress is exposed via `GET /api/catalog/status`.
 3. **Load:** `GET /api/state` → library (with rank, seed flag), settings, triage, candidate pool.
 4. **Score (client):** `profile.js` builds a tag-affinity vector from seeded library games; `score.js` scores each candidate and returns `{appid, score, breakdown[]}` sorted.
-5. **Claude (optional):** `POST /api/claude/annotate` with top 30 + profile summary → blurbs keyed by appid, plus up to 3 wildcard titles. Wildcards are resolved via store search to app IDs. Unresolvable, owned, or triaged ones are dropped. Resolved wildcards are fetched into `apps` so they can be scored and broken down like any other card.
+5. **Claude (optional, only on Regenerate):** `POST /api/claude/annotate` sends the top 30 plus a profile summary and returns blurbs keyed by appid, plus up to 3 wildcard titles.
+   - Wildcards are resolved to app IDs via store search. Unresolvable, owned, triaged, or already-listed ones are dropped.
+   - Resolved wildcards are fetched into `apps` so they can be scored and broken down like any other card. They always appear in the list (pinned), positioned by their score.
+   - The latest result is saved as setting `claudeLatest` and shown on every page load, without calling Claude again.
 6. **Writes:** rank reorder, seed toggle, triage, and settings changes are each a small `PUT`/`POST` that persists immediately.
 
 ## Scoring model
@@ -107,13 +118,13 @@ Top bar: title · Import from Steam · Regenerate (refresh catalog + Claude) · 
 ```
 library(appid PK, name, source['steam'|'manual'], hours, rank INT, seed BOOL, hidden BOOL)
 apps(appid PK, name, tags_json, developer, publisher, price_cents, review_pct, review_count,
-     release_year, deck_verified BOOL, modes_json, capsule_url, fetched_at)
+     release_year, deck_verified BOOL, modes_json, capsule_url, tags_at, details_at)
 triage(appid PK, bucket['interested'|'not_for_me'|'played'], created_at)
-settings(key PK, value_json)
-claude_cache(profile_hash PK, response_json, created_at)
+settings(key PK, value_json)   -- user settings + internal values: wishlist, candidateIds,
+                               -- catalogFinishedAt, claudeLatest
 ```
 
-Wishlist is read via `IWishlistService/GetWishlist` during import (if the profile allows it), and stored as `settings.wishlist`.
+Wishlist is read via `IWishlistService/GetWishlist` during import (if the profile allows it), and stored as setting `wishlist`. Play modes come from store categories: single-player → `single`; multi-player / PvP → `multi`; any co-op category → `coop`.
 
 ## Error handling
 
@@ -130,8 +141,8 @@ Wishlist is read via `IWishlistService/GetWishlist` during import (if the profil
 
 **Claude (optional)**
 - No `ANTHROPIC_API_KEY`: ✨ features are hidden. Everything else works.
-- Error or timeout (20 s): recs render without blurbs, plus a "Claude unavailable" notice.
-- Responses are cached by a profile hash, so re-scoring never re-calls Claude. Only Regenerate does.
+- Error, refusal, or timeout (60 s, 1 retry): recs render without new blurbs, plus a "Claude unavailable" notice.
+- Re-scoring and page loads never call Claude. Only Regenerate does.
 - Wildcards are validated against the store; invalid, owned, or triaged ones are dropped.
 
 **Data safety**
