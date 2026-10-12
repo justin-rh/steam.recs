@@ -5,6 +5,7 @@ import { renderLibrary } from './ui/library.js';
 import { renderRecs, BUCKETS } from './ui/recs.js';
 import { renderTune } from './ui/tune.js';
 import { readFilters } from './ui/tune-form.js';
+import { applyServerState } from './state.js';
 import { escapeHtml, formatAge, capsuleFor } from './format.js';
 
 const $ = sel => document.querySelector(sel);
@@ -29,20 +30,13 @@ const el = {
 
 // ---------- state ----------
 
-function hydrate(s) {
-  state.config = s.config;
-  state.library = s.library;
-  state.apps = new Map(s.apps.map(a => [a.appid, a]));
-  state.candidateIds = s.candidateIds;
-  state.triage = s.triage;
-  state.wishlist = s.wishlist;
-  state.settings = mergeSettings(s.settings);
-  state.claude = s.claude;
-  state.catalog = s.catalog;
-}
+// Settings edits bump settingsVersion; savedVersion catches up once the server
+// has them. While they differ, reloads keep the local (unsaved) settings.
+let settingsVersion = 0;
+let savedVersion = 0;
 
 async function reload() {
-  hydrate(await api.get('/api/state'));
+  applyServerState(state, await api.get('/api/state'), { settingsDirty: settingsVersion !== savedVersion });
   // 'auto' leaves the Tune panel alone while the user is interacting with it
   // (e.g. mid-slider-drag during a background catalog poll).
   render();
@@ -123,9 +117,18 @@ async function persist(promise) {
 let saveTimer = null;
 function saveSettingsSoon() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
+  saveTimer = setTimeout(async () => {
+    const version = settingsVersion;
     const { sliders, blockedTags, blockedCompanies, filters, hideWishlisted, hideTriaged } = state.settings;
-    persist(api.put('/api/settings', { sliders, blockedTags, blockedCompanies, filters, hideWishlisted, hideTriaged }));
+    try {
+      await api.put('/api/settings', { sliders, blockedTags, blockedCompanies, filters, hideWishlisted, hideTriaged });
+      savedVersion = Math.max(savedVersion, version);
+    } catch (err) {
+      // Give up on the unsaved edit and show the server's settings again.
+      savedVersion = settingsVersion;
+      state.notice = err.message;
+      await reload();
+    }
   }, SAVE_DEBOUNCE_MS);
 }
 
@@ -174,6 +177,7 @@ const actions = {
 
   updateSettings(patch, { tune = 'auto' } = {}) {
     state.settings = mergeSettings({ ...state.settings, ...patch });
+    settingsVersion++;
     render({ tune });
     saveSettingsSoon();
   },
@@ -387,10 +391,21 @@ function wireEvents() {
   el.tune.form.addEventListener('submit', e => e.preventDefault());
 }
 
+function wireDialogs() {
+  // Cancel/Close are type="button", so Enter submits the dialog's real action
+  // (Add) instead of the first button in the form.
+  for (const btn of document.querySelectorAll('dialog [data-close]')) {
+    btn.addEventListener('click', () => btn.closest('dialog').close('cancel'));
+  }
+  // The add dialog has no submit action; Enter in its search box shouldn't close it.
+  $('#add-dialog form').addEventListener('submit', e => e.preventDefault());
+}
+
 async function main() {
   wireSortable();
   wireEvents();
   wireAddDialog();
+  wireDialogs();
   await reload();
   if (state.catalog?.running) await pollCatalog();
 }
