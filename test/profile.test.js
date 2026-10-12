@@ -31,7 +31,7 @@ test('buildProfile weights tags by rank and normalizes max to 1', () => {
   close(p.affinity.Roguelike, 1);
   close(p.affinity.Action, 1 / 3);
   close(p.affinity.Puzzle, 0.2 / 0.75);
-  assert.deepEqual(p.topTags, ['Roguelike', 'Puzzle', 'Action']);
+  assert.deepEqual(p.topTags, ['Roguelike', 'Action', 'Puzzle']);
   assert.equal(p.sources.Roguelike[0].appid, 1);
   assert.equal(p.sources.Roguelike[0].rank, 1);
   assert.deepEqual(p.seeds.map(s => s.appid), [1, 2]);
