@@ -20,6 +20,8 @@ npm start
 
 Open http://localhost:3000, click **Import from Steam**, then **Regenerate**. The first catalog build fetches tags and details for about 1,000 games while staying under Steam/SteamSpy rate limits, so it takes about 45 minutes. Hidden gems are fetched first, and results appear while it runs. Cached data is reused for 7 days, so later builds are much faster.
 
+`npm start` runs Node with `--use-system-ca`, so it trusts the Windows certificate store. That's needed on networks that inspect HTTPS traffic (for example, CrowdStrike Falcon re-signs `api.anthropic.com`); without it, Claude calls fail with "Connection error".
+
 ## How scoring works
 
 - **Library rank:** #1 weighs 1.0 and the last game weighs 0.2. Playtime adds up to +0.25. Only games with ☑ (seeds) count.

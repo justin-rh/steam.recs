@@ -5,7 +5,7 @@
   "description": "Customizable Steam game recommender",
   "type": "module",
   "scripts": {
-    "start": "node --env-file-if-exists=.env server.js",
+    "start": "node --use-system-ca --env-file-if-exists=.env server.js",
     "test": "node --test"
   },
   "dependencies": {
