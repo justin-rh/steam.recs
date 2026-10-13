@@ -111,6 +111,9 @@ test('settings validation', async () => {
   const en = await request(app).put('/api/settings').send({ filters: { englishOnly: true } }).expect(200);
   assert.equal(en.body.settings.filters.englishOnly, true);
   await request(app).put('/api/settings').send({ filters: { englishOnly: 'yes' } }).expect(400);
+  const cs = await request(app).put('/api/settings').send({ combineSeries: false }).expect(200);
+  assert.equal(cs.body.settings.combineSeries, false);
+  await request(app).put('/api/settings').send({ combineSeries: 'no' }).expect(400);
   await request(app).put('/api/settings').send({ blockedTags: 'Horror' }).expect(400);
 });
 

@@ -125,9 +125,9 @@ function saveSettingsSoon() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     const version = settingsVersion;
-    const { sliders, blockedTags, blockedCompanies, filters, hideWishlisted, hideTriaged, obscurity } = state.settings;
+    const { sliders, blockedTags, blockedCompanies, filters, hideWishlisted, hideTriaged, obscurity, combineSeries } = state.settings;
     try {
-      await api.put('/api/settings', { sliders, blockedTags, blockedCompanies, filters, hideWishlisted, hideTriaged, obscurity });
+      await api.put('/api/settings', { sliders, blockedTags, blockedCompanies, filters, hideWishlisted, hideTriaged, obscurity, combineSeries });
       savedVersion = Math.max(savedVersion, version);
     } catch (err) {
       // Give up on the unsaved edit and show the server's settings again.

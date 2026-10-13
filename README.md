@@ -33,6 +33,7 @@ Open http://localhost:3000, click **Import from Steam**, then **Regenerate**. Th
 - **Candidate pool:** for each of your top 12 tags, the 50 most-reviewed games plus up to 60 hidden gems (80%+ positive, 20–20,000 reviews, ranked by a confidence-adjusted rating), plus what's trending.
 - The list shows 60 games; **Show more** adds 30 at a time.
 - **English only** (Filters) hides games known not to support English. Language data comes from SteamSpy; games whose languages aren't known yet stay visible. The first Regenerate after upgrading fetches language data for your existing catalog (about 18 minutes, once).
+- **Combine series** (Filters, on by default) shows each game series as one card led by its best match, with "+N more in series". Series are matched by title (ignoring subtitles, sequel numbers, and edition names) plus a shared developer or publisher. A series takes one slot in the list; triaging the shown game brings up the next one.
 - The top card is scaled to 100%, and the breakdown lines always add up to the score shown.
 
 ## Tests

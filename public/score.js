@@ -1,5 +1,6 @@
 // Pure module: shared by the browser and Node tests. No DOM access.
 import { voteShares } from './profile.js';
+import { groupSeries } from './series.js';
 
 export const SLIDER_STEP = 0.15;
 export const TRIAGE_STEP = 0.05;
@@ -30,9 +31,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
   hideWishlisted: false,
   hideTriaged: true,
   obscurity: 0,
+  combineSeries: true,
 });
 
-export const SETTING_KEYS = ['sliders', 'blockedTags', 'blockedCompanies', 'filters', 'hideWishlisted', 'hideTriaged', 'obscurity'];
+export const SETTING_KEYS = ['sliders', 'blockedTags', 'blockedCompanies', 'filters', 'hideWishlisted', 'hideTriaged', 'obscurity', 'combineSeries'];
 
 export function mergeSettings(partial = {}) {
   return {
@@ -169,16 +171,25 @@ export function scoreCandidates({ profile, candidates, settings, ctx, limit = DE
   }
 
   scored.sort((a, b) => b.raw - a.raw || String(a.app.name).localeCompare(String(b.app.name)));
-  const top = scored.slice(0, limit);
+  // With combineSeries, each series becomes one entry led by its best game, so it
+  // takes one slot; triaged/filtered games are already gone, so the next-best leads.
+  const entries = s.combineSeries
+    ? groupSeries(scored).map(g => ({ ...g.lead, others: g.others }))
+    : scored.map(r => ({ ...r, others: [] }));
+  const top = entries.slice(0, limit);
   const topIds = new Set(top.map(r => r.app.appid));
-  const pinned = scored.filter(r => pinnedIds.has(r.app.appid) && !topIds.has(r.app.appid));
+  const pinned = entries.filter(r => pinnedIds.has(r.app.appid) && !topIds.has(r.app.appid));
   const shown = [...top, ...pinned].sort((a, b) => b.raw - a.raw);
 
   const maxRaw = scored.length ? scored[0].raw : 0;
   const factor = maxRaw > 0 ? 100 / maxRaw : 0;
   const recs = shown.map(r => {
     const score = Math.round(r.raw * factor);
-    return { appid: r.app.appid, app: r.app, raw: r.raw, score, lines: scaleLines(r.lines, factor, score), pinned: pinnedIds.has(r.app.appid), wishlisted: r.wishlisted };
+    return {
+      appid: r.app.appid, app: r.app, raw: r.raw, score, lines: scaleLines(r.lines, factor, score),
+      pinned: pinnedIds.has(r.app.appid), wishlisted: r.wishlisted,
+      series: r.others.map(o => ({ appid: o.app.appid, app: o.app, score: Math.round(o.raw * factor), wishlisted: o.wishlisted })),
+    };
   });
-  return { recs, unscored, eligible: scored.length, shown: top.length };
+  return { recs, unscored, eligible: entries.length, shown: top.length };
 }

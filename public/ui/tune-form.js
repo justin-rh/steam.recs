@@ -26,6 +26,7 @@ export function readFilters(form) {
     hideWishlisted: Boolean(form.hideWishlisted.checked),
     hideTriaged: Boolean(form.hideTriaged.checked),
     obscurity: Math.round(Number(form.obscurity.value)) || 0,
+    combineSeries: Boolean(form.combineSeries.checked),
   };
 }
 
@@ -42,4 +43,5 @@ export function writeFilters(form, settings) {
   form.hideWishlisted.checked = settings.hideWishlisted;
   form.hideTriaged.checked = settings.hideTriaged;
   form.obscurity.value = String(settings.obscurity ?? 0);
+  form.combineSeries.checked = settings.combineSeries !== false;
 }

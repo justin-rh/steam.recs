@@ -7,7 +7,16 @@ const blankForm = () => ({
   maxPrice: { value: '' }, minReviewPct: { value: '' }, minReviewCount: { value: '' },
   yearMin: { value: '' }, yearMax: { value: '' }, deckOnly: { checked: false },
   mode: { value: 'any' }, hideWishlisted: { checked: false }, hideTriaged: { checked: true },
-  obscurity: { value: '0' }, englishOnly: { checked: false },
+  obscurity: { value: '0' }, englishOnly: { checked: false }, combineSeries: { checked: true },
+});
+
+test('combineSeries checkbox reads and round-trips', () => {
+  const f = blankForm();
+  assert.equal(readFilters(f).combineSeries, true);
+  f.combineSeries.checked = false;
+  assert.equal(readFilters(f).combineSeries, false);
+  writeFilters(f, mergeSettings());
+  assert.equal(f.combineSeries.checked, true);
 });
 
 test('englishOnly checkbox reads and round-trips', () => {

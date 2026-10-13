@@ -6,7 +6,7 @@ import {
 } from '../public/score.js';
 
 const app = (appid, tags, extra = {}) => ({
-  appid, name: `App ${appid}`, tags, developer: 'Dev Co', publisher: 'Pub Co', priceCents: 1999,
+  appid, name: `App ${appid} Test`, tags, developer: 'Dev Co', publisher: 'Pub Co', priceCents: 1999,
   reviewPct: 0.9, reviewCount: 5000, releaseYear: 2020, deckVerified: true, modes: ['single'], capsuleUrl: null, ...extra,
 });
 const ctx = (extra = {}) => ({ excludeIds: new Set(), wishlistIds: new Set(), triagedIds: new Set(), ...extra });
@@ -292,6 +292,45 @@ test('scoreCandidates: hideWishlisted still removes wishlisted games', () => {
     ctx: { excludeIds: new Set(), wishlistIds: new Set([1]), triage: [] },
   });
   assert.deepEqual(r.recs.map(x => x.appid), [2]);
+});
+
+const souls = (appid, name, extra = {}) => app(appid, { Roguelike: 1 }, { name, developer: 'FromSoftware', publisher: 'Bandai Namco', ...extra });
+
+test('scoreCandidates: combineSeries (on by default) shows one card per series with the rest attached', () => {
+  assert.equal(mergeSettings().combineSeries, true);
+  const candidates = [
+    souls(1, 'Dark Souls III', { reviewPct: 0.95 }),
+    souls(2, 'DARK SOULS: REMASTERED', { reviewPct: 0.90 }),
+    souls(3, 'Dark Souls II', { reviewPct: 0.85 }),
+    app(4, { Roguelike: 1 }, { name: 'Hollow Knight', developer: 'Team Cherry', publisher: 'Team Cherry', reviewPct: 0.80 }),
+  ];
+  const r = scoreCandidates({ profile, candidates, settings: mergeSettings(), ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage: [] } });
+  assert.deepEqual(r.recs.map(x => x.appid), [1, 4]);
+  assert.deepEqual(r.recs[0].series.map(s => s.appid), [2, 3]);
+  assert.ok(r.recs[0].series.every(s => Number.isInteger(s.score) && s.app.name));
+  assert.deepEqual(r.recs[1].series, []);
+  assert.equal(r.eligible, 2, 'a series counts once');
+  for (const rec of r.recs) assert.equal(rec.lines.reduce((s, l) => s + l.value, 0), rec.score);
+});
+
+test('scoreCandidates: a series takes one slot toward the limit', () => {
+  const candidates = [souls(1, 'Dark Souls III', { reviewPct: 0.95 }), souls(2, 'Dark Souls II', { reviewPct: 0.9 }), app(3, { Roguelike: 1 }, { name: 'Other', developer: 'X', publisher: 'X', reviewPct: 0.5 })];
+  const r = scoreCandidates({ profile, candidates, settings: mergeSettings(), limit: 2, ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage: [] } });
+  assert.deepEqual(r.recs.map(x => x.appid), [1, 3]);
+  assert.equal(r.shown, 2);
+});
+
+test('scoreCandidates: triaging the shown game promotes the next game in the series', () => {
+  const candidates = [souls(1, 'Dark Souls III', { reviewPct: 0.95 }), souls(2, 'Dark Souls II', { reviewPct: 0.9 })];
+  const r = scoreCandidates({ profile, candidates, settings: mergeSettings(), ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage: [{ appid: 1, bucket: 'not_for_me' }] } });
+  assert.deepEqual(r.recs.map(x => x.appid), [2]);
+});
+
+test('scoreCandidates: combineSeries off lists every game separately', () => {
+  const candidates = [souls(1, 'Dark Souls III'), souls(2, 'Dark Souls II')];
+  const r = scoreCandidates({ profile, candidates, settings: mergeSettings({ combineSeries: false }), ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage: [] } });
+  assert.deepEqual(r.recs.map(x => x.appid).sort(), [1, 2]);
+  assert.equal(r.eligible, 2);
 });
 
 test('scoreCandidates: empty profile yields finite scores with no NaN', () => {

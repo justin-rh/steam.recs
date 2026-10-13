@@ -112,6 +112,7 @@ Top bar: title · Import from Steam · Regenerate (refresh catalog + Claude) · 
 **Right — Tune**
 - **Tags:** searchable list (top 20 profile tags shown by default, search for any tag), each with a −2..+2 slider and a block ✕. Blocked tags are listed in a separate chip row.
 - **Filters:** max price, min review %, min review count, release year range, Deck verified only, play mode (any / single-player / multiplayer / co-op), English only (hides games whose SteamSpy language list lacks English; unknown languages stay visible).
+- **Combine series** (on by default): games are grouped when their title "series key" matches (subtitle after `:`/` - ` dropped, trailing sequel numbers and Roman numerals dropped, edition words and a leading "The" removed) and they share a developer or publisher. Each group is one card led by its best-scoring game and counts as one slot.
 - **Exclusions:** hide owned (locked on), hide wishlisted, hide triaged, blocked developers/publishers (chip input).
 - Every control re-scores instantly. Settings persist with a short debounce (300 ms).
 

@@ -2,6 +2,12 @@ import { escapeHtml, capsuleFor, formatPrice, formatReview, formatSigned, topRea
 
 export const BUCKETS = ['interested', 'not_for_me', 'played', 'hidden'];
 
+function seriesList(series) {
+  if (!series?.length) return '';
+  return `<div class="series-list"><strong>Also in this series</strong><ul>${series.map(s =>
+    `<li><a href="https://store.steampowered.com/app/${s.appid}/" target="_blank" rel="noopener">${escapeHtml(s.app.name)}</a> · ${s.score}%${s.wishlisted ? ' · ♥' : ''}</li>`).join('')}</ul></div>`;
+}
+
 function card(rec, { blurb, expanded }) {
   const a = rec.app;
   const deck = a.deckVerified ? ' · Deck ✓' : '';
@@ -13,7 +19,11 @@ function card(rec, { blurb, expanded }) {
         </table>
         ${blurb ? `<p class="blurb">“${escapeHtml(blurb)}”${rec.pinned ? ' (Claude)' : ''}</p>` : ''}
         <a href="https://store.steampowered.com/app/${a.appid}/" target="_blank" rel="noopener">Open in Steam ↗</a>
+        ${seriesList(rec.series)}
       </div>`
+    : '';
+  const more = rec.series?.length
+    ? `<div class="rec-series">+${rec.series.length} more in series</div>`
     : '';
   return `<li class="rec${expanded ? ' open' : ''}" data-appid="${a.appid}">
     <div class="rec-head" data-action="expand">
@@ -22,6 +32,7 @@ function card(rec, { blurb, expanded }) {
         <div class="rec-title">${rec.pinned ? '<span class="wild" title="Claude wildcard pick">✨</span>' : ''}${escapeHtml(a.name)}${rec.wishlisted ? ' <span class="badge-wish" title="Already on your Steam wishlist">♥ Wishlisted</span>' : ''}</div>
         <div class="rec-reason">${escapeHtml(topReason(rec.lines))}</div>
         <div class="rec-meta">${formatPrice(a.priceCents)} · ${formatReview(a.reviewPct)} positive${deck}</div>
+        ${more}
       </div>
       <div class="rec-score">${rec.score}%</div>
     </div>

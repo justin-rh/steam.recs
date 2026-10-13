@@ -61,6 +61,9 @@ input[type="text"], input[type="search"], input[type="number"], select {
 .breakdown .pos { color: var(--pos); }
 .breakdown .neg { color: var(--neg); }
 .blurb { font-style: italic; margin: 8px 0; }
+.rec-series { font-size: 12px; color: var(--accent); }
+.series-list { margin-top: 8px; font-size: 12px; }
+.series-list ul { margin: 4px 0 0; padding-left: 18px; }
 .rec-body a { color: var(--accent); }
 
 .zones { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; position: sticky; bottom: 0; background: var(--panel); padding-top: 6px; }
