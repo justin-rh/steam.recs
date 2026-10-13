@@ -7,6 +7,8 @@ export const QUALITY_STEP = 0.1;
 export const QUALITY_PIVOT = 0.7;
 export const DEFAULT_LIMIT = 60;
 export const SEED_LINES_SHOWN = 3;
+// Tie-breaker for games already on your wishlist: a few points, not a reshuffle.
+export const WISHLIST_BOOST = 0.05;
 export const OBSCURITY_STEP = 0.25;
 // log10 of a review count that counts as "not obscure at all" (1,000,000).
 const OBSCURITY_LOG_CEILING = 6;
@@ -84,7 +86,7 @@ export function triageAdjustments(triage) {
   return { up, down };
 }
 
-export function scoreApp(app, profile, settings, adj) {
+export function scoreApp(app, profile, settings, adj, { wishlisted = false } = {}) {
   const shares = voteShares(app.tags);
   const bySeed = new Map();
   const sliderLines = [];
@@ -123,6 +125,7 @@ export function scoreApp(app, profile, settings, adj) {
       value: settings.obscurity * OBSCURITY_STEP * (2 * obscurity - 1),
     });
   }
+  if (wishlisted) lines.push({ label: 'On your wishlist', kind: 'wishlist', value: WISHLIST_BOOST });
   const minCount = settings.filters.minReviewCount ?? 0;
   if (app.reviewPct != null && (app.reviewCount ?? 0) >= minCount) {
     lines.push({ label: 'Review score', kind: 'quality', value: QUALITY_STEP * (app.reviewPct - QUALITY_PIVOT) });
@@ -158,8 +161,9 @@ export function scoreCandidates({ profile, candidates, settings, ctx, limit = DE
   for (const app of candidates) {
     if (!app.tags || Object.keys(app.tags).length === 0) { unscored++; continue; }
     if (excludeReason(app, s, fullCtx)) continue;
-    const { raw, lines } = scoreApp(app, profile, s, adj);
-    scored.push({ app, raw, lines });
+    const wishlisted = ctx.wishlistIds.has(app.appid);
+    const { raw, lines } = scoreApp(app, profile, s, adj, { wishlisted });
+    scored.push({ app, raw, lines, wishlisted });
   }
 
   scored.sort((a, b) => b.raw - a.raw || String(a.app.name).localeCompare(String(b.app.name)));
@@ -172,7 +176,7 @@ export function scoreCandidates({ profile, candidates, settings, ctx, limit = DE
   const factor = maxRaw > 0 ? 100 / maxRaw : 0;
   const recs = shown.map(r => {
     const score = Math.round(r.raw * factor);
-    return { appid: r.app.appid, app: r.app, raw: r.raw, score, lines: scaleLines(r.lines, factor, score), pinned: pinnedIds.has(r.app.appid) };
+    return { appid: r.app.appid, app: r.app, raw: r.raw, score, lines: scaleLines(r.lines, factor, score), pinned: pinnedIds.has(r.app.appid), wishlisted: r.wishlisted };
   });
   return { recs, unscored, eligible: scored.length, shown: top.length };
 }

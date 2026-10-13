@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildProfile, tagIdf, RANK_HALF_LIFE } from '../public/profile.js';
 import {
-  DEFAULT_SETTINGS, mergeSettings, excludeReason, triageAdjustments, scoreApp, scaleLines, scoreCandidates, obscurityOf,
+  DEFAULT_SETTINGS, mergeSettings, excludeReason, triageAdjustments, scoreApp, scaleLines, scoreCandidates, obscurityOf, WISHLIST_BOOST,
 } from '../public/score.js';
 
 const app = (appid, tags, extra = {}) => ({
@@ -251,6 +251,37 @@ test('scoreCandidates: with IDF, a distinctive-tag match beats a generic-tag mat
     ctx: { excludeIds: new Set(), wishlistIds: new Set(), triage: [] },
   });
   assert.deepEqual(r.recs.map(x => x.appid), [2, 1]);
+});
+
+test('scoreApp: wishlisted games get a small boost line; others do not', () => {
+  const a = app(1, { Roguelike: 1 }, { reviewPct: null });
+  const boosted = scoreApp(a, profile, mergeSettings(), noAdj, { wishlisted: true });
+  const line = boosted.lines.find(l => l.kind === 'wishlist');
+  assert.equal(line.label, 'On your wishlist');
+  assert.equal(line.value, WISHLIST_BOOST);
+  assert.equal(WISHLIST_BOOST, 0.05);
+  assert.equal(scoreApp(a, profile, mergeSettings(), noAdj).lines.find(l => l.kind === 'wishlist'), undefined);
+});
+
+test('scoreCandidates: flags wishlisted recs, boosts them, and breakdowns still sum', () => {
+  const candidates = Array.from({ length: 20 }, (_, i) => app(i + 1, { Roguelike: (i % 4) + 1, Action: 1 }));
+  const r = scoreCandidates({
+    profile, candidates, settings: mergeSettings(),
+    ctx: { excludeIds: new Set(), wishlistIds: new Set([3, 7]), triage: [] },
+  });
+  assert.deepEqual(r.recs.filter(x => x.wishlisted).map(x => x.appid).sort((a, b) => a - b), [3, 7]);
+  for (const rec of r.recs) {
+    assert.equal(rec.lines.some(l => l.kind === 'wishlist'), rec.wishlisted);
+    assert.equal(rec.lines.reduce((s, l) => s + l.value, 0), rec.score);
+  }
+});
+
+test('scoreCandidates: hideWishlisted still removes wishlisted games', () => {
+  const r = scoreCandidates({
+    profile, candidates: [app(1, { Roguelike: 1 }), app(2, { Roguelike: 1 })], settings: mergeSettings({ hideWishlisted: true }),
+    ctx: { excludeIds: new Set(), wishlistIds: new Set([1]), triage: [] },
+  });
+  assert.deepEqual(r.recs.map(x => x.appid), [2]);
 });
 
 test('scoreCandidates: empty profile yields finite scores with no NaN', () => {

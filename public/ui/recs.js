@@ -19,7 +19,7 @@ function card(rec, { blurb, expanded }) {
     <div class="rec-head" data-action="expand">
       <img class="capsule" src="${escapeHtml(a.capsuleUrl || capsuleFor(a.appid))}" alt="" loading="lazy">
       <div>
-        <div class="rec-title">${rec.pinned ? '<span class="wild" title="Claude wildcard pick">✨</span>' : ''}${escapeHtml(a.name)}</div>
+        <div class="rec-title">${rec.pinned ? '<span class="wild" title="Claude wildcard pick">✨</span>' : ''}${escapeHtml(a.name)}${rec.wishlisted ? ' <span class="badge-wish" title="Already on your Steam wishlist">♥ Wishlisted</span>' : ''}</div>
         <div class="rec-reason">${escapeHtml(topReason(rec.lines))}</div>
         <div class="rec-meta">${formatPrice(a.priceCents)} · ${formatReview(a.reviewPct)} positive${deck}</div>
       </div>

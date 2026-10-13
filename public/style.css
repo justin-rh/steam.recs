@@ -53,6 +53,7 @@ input[type="text"], input[type="search"], input[type="number"], select {
 .rec-reason, .rec-meta { font-size: 12px; color: var(--muted); }
 .rec-score { font-size: 18px; font-weight: 700; color: var(--accent); padding-right: 6px; }
 .wild { margin-right: 4px; }
+.badge-wish { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 8px; font-size: 11px; font-weight: 600; color: #f3a6c8; background: rgba(243, 166, 200, .12); border: 1px solid rgba(243, 166, 200, .4); vertical-align: 1px; }
 .rec-body { padding: 4px 10px 10px 136px; cursor: default; }
 .breakdown { border-collapse: collapse; width: 100%; max-width: 420px; font-size: 12px; }
 .breakdown td { padding: 1px 4px; border-bottom: 1px dotted var(--line); }
