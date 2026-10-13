@@ -21,6 +21,7 @@ export function readFilters(form) {
       yearMax: yearMax == null ? null : Math.round(yearMax),
       deckOnly: Boolean(form.deckOnly.checked),
       mode: form.mode.value || 'any',
+      englishOnly: Boolean(form.englishOnly.checked),
     },
     hideWishlisted: Boolean(form.hideWishlisted.checked),
     hideTriaged: Boolean(form.hideTriaged.checked),
@@ -37,6 +38,7 @@ export function writeFilters(form, settings) {
   form.yearMax.value = f.yearMax == null ? '' : String(f.yearMax);
   form.deckOnly.checked = f.deckOnly;
   form.mode.value = f.mode;
+  form.englishOnly.checked = Boolean(f.englishOnly);
   form.hideWishlisted.checked = settings.hideWishlisted;
   form.hideTriaged.checked = settings.hideTriaged;
   form.obscurity.value = String(settings.obscurity ?? 0);

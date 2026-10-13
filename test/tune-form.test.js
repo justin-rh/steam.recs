@@ -7,7 +7,15 @@ const blankForm = () => ({
   maxPrice: { value: '' }, minReviewPct: { value: '' }, minReviewCount: { value: '' },
   yearMin: { value: '' }, yearMax: { value: '' }, deckOnly: { checked: false },
   mode: { value: 'any' }, hideWishlisted: { checked: false }, hideTriaged: { checked: true },
-  obscurity: { value: '0' },
+  obscurity: { value: '0' }, englishOnly: { checked: false },
+});
+
+test('englishOnly checkbox reads and round-trips', () => {
+  const f = blankForm();
+  f.englishOnly.checked = true;
+  assert.equal(readFilters(f).filters.englishOnly, true);
+  writeFilters(f, mergeSettings({ filters: { englishOnly: false } }));
+  assert.equal(f.englishOnly.checked, false);
 });
 
 test('obscurity slider reads as an integer and round-trips', () => {
@@ -21,7 +29,7 @@ test('obscurity slider reads as an integer and round-trips', () => {
 
 test('blank fields mean no limit', () => {
   const out = readFilters(blankForm());
-  assert.deepEqual(out.filters, { maxPriceCents: null, minReviewPct: null, minReviewCount: null, yearMin: null, yearMax: null, deckOnly: false, mode: 'any' });
+  assert.deepEqual(out.filters, { maxPriceCents: null, minReviewPct: null, minReviewCount: null, yearMin: null, yearMax: null, deckOnly: false, mode: 'any', englishOnly: false });
   assert.equal(out.hideTriaged, true);
 });
 

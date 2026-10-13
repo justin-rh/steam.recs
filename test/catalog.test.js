@@ -6,14 +6,14 @@ import { createCatalog, FRESH_MS, PER_TAG, GEMS_PER_TAG, TOP_TAGS, pickGems, wil
 const passthrough = { run: fn => fn() };
 const silent = { warn() {}, error() {} };
 
-function fakes({ tagLists = {}, top2 = [], failApp = null, listsFail = false, seedTags = { Roguelike: 10, Action: 5 } } = {}) {
+function fakes({ tagLists = {}, top2 = [], failApp = null, listsFail = false, seedTags = { Roguelike: 10, Action: 5 }, noLangApp = null } = {}) {
   const calls = { spyDetails: [], storeDetails: [], deck: [], lists: [] };
   const spy = {
     async getAppDetails(appid) {
       calls.spyDetails.push(appid);
       if (appid === failApp) throw new Error('boom');
       const tags = appid === 1 ? seedTags : appid === 2 ? { Puzzle: 10 } : { Roguelike: 3 };
-      return { appid, name: `App ${appid}`, tags, developer: 'D', publisher: 'P', priceCents: 999, reviewPct: 0.9, reviewCount: 100 };
+      return { appid, name: `App ${appid}`, tags, developer: 'D', publisher: 'P', priceCents: 999, reviewPct: 0.9, reviewCount: 100, languages: appid === noLangApp ? null : ['English'] };
     },
     async listByTag(tag) { calls.lists.push(tag); if (listsFail) throw new Error('lists down'); return tagLists[tag] || []; },
     async listTop2Weeks() { calls.lists.push('top2'); if (listsFail) throw new Error('lists down'); return top2; },
@@ -109,6 +109,26 @@ test('tag searches favor distinctive tags over ones common across the cached cat
   store.setValue('candidateIds', cached);
   await catalog.refresh();
   assert.deepEqual(calls.lists.slice(1), ['Rare', 'Common']);
+});
+
+test('fresh apps missing language data get their SteamSpy data refetched once', async () => {
+  const { store, catalog, calls } = setup({ tagLists: { Roguelike: [row(10, 1), row(11, 1)] } });
+  const fresh = { tags: { Roguelike: 3 }, tagsAt: 1_000_000, detailsAt: 1_000_000 };
+  store.upsertApp({ appid: 10, name: 'No langs', ...fresh });
+  store.upsertApp({ appid: 11, name: 'Has langs', languages: ['English'], ...fresh });
+  await catalog.refresh();
+  assert.ok(calls.spyDetails.includes(10));
+  assert.ok(!calls.spyDetails.includes(11));
+  assert.deepEqual(store.getApp(10).languages, ['English']);
+  assert.ok(!calls.storeDetails.includes(10), 'store data is still fresh');
+});
+
+test('an app SteamSpy has no language list for is stored as [] and not refetched while fresh', async () => {
+  const { store, catalog, calls } = setup({ tagLists: { Roguelike: [row(10, 1)] }, noLangApp: 10 });
+  await catalog.refresh();
+  assert.deepEqual(store.getApp(10).languages, []);
+  await catalog.refresh();
+  assert.equal(calls.spyDetails.filter(id => id === 10).length, 1);
 });
 
 test('hidden gems are fetched before popular picks', async () => {

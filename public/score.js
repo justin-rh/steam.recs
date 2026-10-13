@@ -25,7 +25,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   blockedCompanies: [],
   filters: {
     maxPriceCents: null, minReviewPct: null, minReviewCount: null,
-    yearMin: null, yearMax: null, deckOnly: false, mode: 'any',
+    yearMin: null, yearMax: null, deckOnly: false, mode: 'any', englishOnly: false,
   },
   hideWishlisted: false,
   hideTriaged: true,
@@ -72,6 +72,8 @@ export function excludeReason(app, settings, ctx) {
   if (f.yearMax != null && (app.releaseYear == null || app.releaseYear > f.yearMax)) return 'year';
   if (f.deckOnly && app.deckVerified !== true) return 'deck';
   if (f.mode && f.mode !== 'any' && !(app.modes || []).includes(f.mode)) return 'mode';
+  // Only hide games known to lack English; null/[] mean "not known yet", which stays visible.
+  if (f.englishOnly && app.languages?.length && !app.languages.some(l => lc(l) === 'english')) return 'language';
   return null;
 }
 

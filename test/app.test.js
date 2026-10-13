@@ -108,6 +108,9 @@ test('settings validation', async () => {
   await request(app).put('/api/settings').send({ obscurity: 3 }).expect(400);
   await request(app).put('/api/settings').send({ obscurity: 1.5 }).expect(400);
   await request(app).put('/api/settings').send({ filters: { mode: 'mmo' } }).expect(400);
+  const en = await request(app).put('/api/settings').send({ filters: { englishOnly: true } }).expect(200);
+  assert.equal(en.body.settings.filters.englishOnly, true);
+  await request(app).put('/api/settings').send({ filters: { englishOnly: 'yes' } }).expect(400);
   await request(app).put('/api/settings').send({ blockedTags: 'Horror' }).expect(400);
 });
 

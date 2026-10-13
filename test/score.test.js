@@ -53,6 +53,16 @@ test('excludeReason: filters, including 0 meaning free-only and null fields fail
   assert.equal(excludeReason(app(1, { A: 1 }, { modes: null }), f({ mode: 'any' }), ctx()), null);
 });
 
+test('excludeReason: englishOnly hides games known to lack English, keeps unknown', () => {
+  const s = mergeSettings({ filters: { englishOnly: true } });
+  assert.equal(mergeSettings().filters.englishOnly, false);
+  assert.equal(excludeReason(app(1, { A: 1 }, { languages: ['Simplified Chinese'] }), s, ctx()), 'language');
+  assert.equal(excludeReason(app(1, { A: 1 }, { languages: ['French', 'english'] }), s, ctx()), null);
+  assert.equal(excludeReason(app(1, { A: 1 }, { languages: null }), s, ctx()), null);
+  assert.equal(excludeReason(app(1, { A: 1 }, { languages: [] }), s, ctx()), null, 'checked but SteamSpy had no list');
+  assert.equal(excludeReason(app(1, { A: 1 }, { languages: ['Japanese'] }), mergeSettings(), ctx()), null);
+});
+
 test('triageAdjustments splits interested and not-for-me by vote share; played is ignored', () => {
   const adj = triageAdjustments([
     { appid: 1, bucket: 'interested', tags: { A: 1, B: 1 } },

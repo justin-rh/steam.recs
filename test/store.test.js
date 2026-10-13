@@ -1,5 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import Database from 'better-sqlite3';
 import { createStore } from '../lib/store.js';
 
 const owned = n => Array.from({ length: n }, (_, i) => ({ appid: i + 1, name: `Game ${i + 1}`, hours: i }));
@@ -77,6 +81,30 @@ test('upsertApp merges patches and round-trips JSON fields', () => {
   assert.equal(s.getApp(11), null);
   assert.deepEqual(s.getApps([10, 11]).map(x => x.appid), [10]);
   assert.deepEqual(s.getApps([]), []);
+});
+
+test('upsertApp round-trips languages', () => {
+  const s = createStore();
+  s.upsertApp({ appid: 10, name: 'X', languages: ['English', 'German'] });
+  assert.deepEqual(s.getApp(10).languages, ['English', 'German']);
+  s.upsertApp({ appid: 11, name: 'Y' });
+  assert.equal(s.getApp(11).languages, null);
+});
+
+test('opening a database from before languages existed adds the column and keeps data', () => {
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'steamrecs-')), 'old.db');
+  const old = new Database(file);
+  old.exec(`CREATE TABLE apps (appid INTEGER PRIMARY KEY, name TEXT, tags_json TEXT, developer TEXT, publisher TEXT,
+    price_cents INTEGER, review_pct REAL, review_count INTEGER, release_year INTEGER, deck_verified INTEGER,
+    modes_json TEXT, capsule_url TEXT, tags_at INTEGER, details_at INTEGER)`);
+  old.prepare('INSERT INTO apps (appid, name, tags_at) VALUES (?, ?, ?)').run(7, 'Old Game', 123);
+  old.close();
+  const s = createStore(file);
+  assert.equal(s.getApp(7).name, 'Old Game');
+  assert.equal(s.getApp(7).languages, null);
+  s.upsertApp({ appid: 7, languages: ['English'] });
+  assert.deepEqual(s.getApp(7).languages, ['English']);
+  s.close();
 });
 
 test('triage set/clear and bucket validation', () => {

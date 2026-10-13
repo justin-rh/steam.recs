@@ -32,6 +32,7 @@ Open http://localhost:3000, click **Import from Steam**, then **Regenerate**. Th
 - **Obscurity slider:** −2 favors popular games, +2 favors games with few reviews.
 - **Candidate pool:** for each of your top 12 tags, the 50 most-reviewed games plus up to 60 hidden gems (80%+ positive, 20–20,000 reviews, ranked by a confidence-adjusted rating), plus what's trending.
 - The list shows 60 games; **Show more** adds 30 at a time.
+- **English only** (Filters) hides games known not to support English. Language data comes from SteamSpy; games whose languages aren't known yet stay visible. The first Regenerate after upgrading fetches language data for your existing catalog (about 18 minutes, once).
 - The top card is scaled to 100%, and the breakdown lines always add up to the score shown.
 
 ## Tests
