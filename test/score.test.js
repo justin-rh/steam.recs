@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildProfile, tagIdf } from '../public/profile.js';
+import { buildProfile, tagIdf, RANK_HALF_LIFE } from '../public/profile.js';
 import {
   DEFAULT_SETTINGS, mergeSettings, excludeReason, triageAdjustments, scoreApp, scaleLines, scoreCandidates, obscurityOf,
 } from '../public/score.js';
@@ -218,7 +218,7 @@ test('scoreApp: a shared tag is credited to each contributing seed in proportion
   const p = buildProfile(lib2, new Map(lib2.map(g => [g.appid, { tags: { T: 1 } }])));
   const { lines } = scoreApp(app(1, { T: 1 }, { reviewPct: null }), p, mergeSettings(), noAdj);
   assert.deepEqual(lines.map(l => l.label), ['Seed1 (#1) overlap', 'Seed2 (#2) overlap']);
-  const w1 = 0.5 ** (1 / 8);
+  const w1 = 0.5 ** (1 / RANK_HALF_LIFE);
   assert.ok(Math.abs(lines[0].value - 1 / (1 + w1)) < 1e-9);
   assert.ok(Math.abs(lines[1].value - w1 / (1 + w1)) < 1e-9);
 });

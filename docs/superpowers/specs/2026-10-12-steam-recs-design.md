@@ -75,11 +75,11 @@ test/
 
 **Profile (`profile.js`)**
 - Only games with `seed = true` contribute. `j` is a seed's 0-based position among seeds (not the whole library); the displayed rank is still its library position.
-- Rank weight: `w_rank = 0.5 ^ (j / 8)` → the 1st seed = 1.0, the 9th = 0.5, the 17th = 0.25.
+- Rank weight: `w_rank = 0.5 ^ (j / 4)` → the 1st seed = 1.0, the 5th = 0.5, the 9th = 0.25.
 - Playtime multiplier: `m_play = 1 + 0.25 * log10(1 + hours) / log10(1 + maxSeedHours)` (1.0 to 1.25).
 - Game weight `w = w_rank * m_play`, so playtime can't lift a low-ranked seed past a high-ranked one.
 - Tag affinity: for each seed game, each of its tags gets `w * tagVoteShare`, where `tagVoteShare` = that tag's SteamSpy votes / the game's total tag votes. Affinities are summed across seeds, multiplied by the tag's IDF, and normalized so the max is 1.0.
-- IDF: `ln((N + 1) / (df + 1)) + 1` over the known apps (library + catalog), so tags on nearly every game ("Singleplayer", "Indie") count for little.
+- IDF: `sqrt(ln((N + 1) / (df + 1)) + 1)` over the known apps (library + catalog), so tags on nearly every game ("Singleplayer", "Indie") count for less. The square root keeps a tag that only low-ranked seeds have from taking over.
 - Each tag remembers every contributing seed and its fraction of that tag (used for the breakdown).
 
 **Score (`score.js`)**, per candidate:

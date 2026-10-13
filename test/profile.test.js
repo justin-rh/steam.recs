@@ -6,11 +6,11 @@ const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} !== ${b}`);
 const game = (appid, rank, extra = {}) => ({ appid, name: `G${appid}`, hours: 0, rank, seed: true, hidden: false, ...extra });
 const W1 = 0.5 ** (1 / RANK_HALF_LIFE); // weight of the 2nd seed
 
-test('rankWeight: first seed is 1.0 and weight halves every RANK_HALF_LIFE seeds', () => {
-  assert.equal(RANK_HALF_LIFE, 8);
+test('rankWeight: first seed is 1.0 and weight halves every 4 seeds', () => {
+  assert.equal(RANK_HALF_LIFE, 4);
   close(rankWeight(0), 1.0);
-  close(rankWeight(8), 0.5);
-  close(rankWeight(16), 0.25);
+  close(rankWeight(4), 0.5);
+  close(rankWeight(8), 0.25);
 });
 
 test('playMultiplier: 1.0 for no hours, 1.25 at max, 1.0 when maxHours is 0', () => {
@@ -32,9 +32,10 @@ test('tagIdf: rare tags weigh more than common ones; apps without tags are ignor
     { appid: 100, tags: null },
   ];
   const idf = tagIdf(apps);
-  close(idf.Common, Math.log(101 / 101) + 1);
-  close(idf.Rare, Math.log(101 / 2) + 1);
-  assert.ok(idf.Rare > 4 * idf.Common);
+  close(idf.Common, Math.sqrt(Math.log(101 / 101) + 1));
+  close(idf.Rare, Math.sqrt(Math.log(101 / 2) + 1));
+  assert.ok(idf.Rare > 2 * idf.Common, 'rare tags still count clearly more');
+  assert.ok(idf.Rare < 3 * idf.Common, 'but the boost is dampened');
 });
 
 test('buildProfile weights tags by seed rank and normalizes max to 1', () => {
@@ -95,6 +96,18 @@ test('buildProfile: heavy playtime cannot lift a 10th-ranked seed past #1', () =
   const apps = new Map([[1, { tags: { X: 1 } }], [2, { tags: { Y: 1 } }]]);
   const p = buildProfile(library, apps);
   assert.ok(p.affinity.X > p.affinity.Y);
+});
+
+test('buildProfile: a rare tag only a 10th-ranked seed has cannot outrank the main tag of the #1 seed', () => {
+  const library = Array.from({ length: 10 }, (_, i) => game(i + 1, i));
+  const apps = new Map([[1, { tags: { Exploration: 1 } }], [10, { tags: { Clicker: 1 } }]]);
+  const catalog = [
+    ...Array.from({ length: 50 }, (_, i) => ({ tags: { Exploration: 1 } })),
+    ...Array.from({ length: 49 }, (_, i) => ({ tags: { Other: 1 } })),
+    { tags: { Clicker: 1 } },
+  ];
+  const p = buildProfile(library, apps, { idf: tagIdf(catalog) });
+  assert.equal(p.topTags[0], 'Exploration');
 });
 
 test('buildProfile: IDF lowers generic tags relative to distinctive ones', () => {

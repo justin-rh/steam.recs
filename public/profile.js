@@ -1,7 +1,7 @@
 // Pure module: shared by the browser and Node tests. No DOM access.
 
-// A seed's weight halves every RANK_HALF_LIFE seeds: #1 = 1.0, #9 = 0.5, #17 = 0.25.
-export const RANK_HALF_LIFE = 8;
+// A seed's weight halves every RANK_HALF_LIFE seeds: #1 = 1.0, #5 = 0.5, #9 = 0.25.
+export const RANK_HALF_LIFE = 4;
 export const PLAY_BONUS_MAX = 0.25;
 
 // seedIndex is the 0-based position among seeded games (not the whole library),
@@ -25,7 +25,8 @@ export function voteShares(tags) {
 }
 
 // Inverse document frequency over a set of apps: tags on nearly every game
-// ("Singleplayer", "Indie") get ~1, rare tags get several times more.
+// ("Singleplayer", "Indie") get ~1, rare tags up to ~2-3x more. The square root
+// dampens the boost so a tag only a low-ranked seed has can't take over.
 export function tagIdf(apps) {
   const df = {};
   let n = 0;
@@ -35,7 +36,7 @@ export function tagIdf(apps) {
     n++;
     for (const t of tags) df[t] = (df[t] || 0) + 1;
   }
-  return Object.fromEntries(Object.entries(df).map(([t, d]) => [t, Math.log((n + 1) / (d + 1)) + 1]));
+  return Object.fromEntries(Object.entries(df).map(([t, d]) => [t, Math.sqrt(Math.log((n + 1) / (d + 1)) + 1)]));
 }
 
 export function buildProfile(library, appsById, { idf = {} } = {}) {
