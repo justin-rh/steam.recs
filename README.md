@@ -24,8 +24,8 @@ Open http://localhost:3000, click **Import from Steam**, then **Regenerate**. Th
 
 ## How scoring works
 
-- **Library rank:** #1 weighs 1.0 and the last game weighs 0.2. Playtime adds up to +0.25. Only games with ☑ (seeds) count.
-- **Seed overlap:** each candidate is scored by how strongly its tags match your seeds' tags.
+- **Library rank:** only games with ☑ (seeds) count. Your top seed weighs 1.0 and weight halves every 4 seeds (5th = 0.5, 9th = 0.25). Playtime multiplies a seed's weight by up to 1.25×.
+- **Seed overlap:** each candidate is scored by how strongly its tags match your seeds' tags. Tags that appear on most games ("Singleplayer", "Indie") count for less than distinctive ones. Each card credits its top 3 contributing seeds, with the rest under "Other seeds".
 - **Tag sliders:** −2 to +2 suppress or boost a tag. ✕ blocks a tag entirely.
 - **Triage:** "Interested" nudges similar games up; "Not for me" nudges them down. "Played" adds the game to your library at the rank you choose.
 - **Review score:** a small nudge up or down relative to 70% positive.
